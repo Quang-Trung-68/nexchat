@@ -19,6 +19,7 @@ async function main() {
   await prisma.conversation.deleteMany()
   await prisma.friendship.deleteMany()
   await prisma.refreshToken.deleteMany()
+  await prisma.passwordResetToken.deleteMany()
   await prisma.oAuthAccount.deleteMany()
   await prisma.user.deleteMany()
 

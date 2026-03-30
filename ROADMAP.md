@@ -1,48 +1,90 @@
 ## Phase 1 — Core Foundation
 
-**Bước 1 — Project setup & cấu trúc thư mục**
+**Bước 1 — Project setup & cấu trúc thư mục** ✅
 
-Khởi tạo monorepo với hai workspace `apps/server` và `apps/client`. Backend dùng Node.js + Express + TypeScript theo cấu trúc feature-based (`src/features/auth/`, `src/features/rooms/`, `src/features/messages/`). Frontend dùng Vite + React + TypeScript. Cấu hình `tsconfig`, `eslint`, `prettier` chung ở root. Mục tiêu là có một project chạy được với `npm run dev` từ root.
+Khởi tạo monorepo với hai workspace `apps/server` và `apps/client`. Backend: Node.js + Express + TypeScript; entry `apps/server/src/server.ts`. Cấu trúc thực tế:
 
-**Bước 2 — Database schema (Prisma)**
+- **`modules/auth/`** — đăng ký / đăng nhập / OAuth / refresh / forgot-password (Passport + JWT cookie).
+- **`features/rooms/`**, **`features/messages/`**, **`features/sockets/`** — REST rooms/messages, Socket.IO realtime.
+- **`middlewares/`**, **`config/`**, **`shared/`**.
 
-Thiết kế toàn bộ schema PostgreSQL qua Prisma: `User`, `Room` (type: DM | GROUP), `RoomMember`, `Message` (có `parentId` cho reply), `Reaction`, `PinnedMessage`, `MessageRead`, `Friendship`. Chạy `prisma migrate dev` để tạo bảng. Đây là bước quan trọng nhất — schema đúng ngay từ đầu sẽ tránh refactor sau.
+Frontend: Vite + React + TypeScript (`apps/client`), Tailwind 4, TanStack Query, Zustand. Chạy `npm run dev` từ root.
 
-**Bước 3 — Auth: Register/Login với JWT + HttpOnly cookie**
+---
 
-Implement `POST /auth/register` và `POST /auth/login`. Password hash bằng `bcrypt`. Sau khi xác thực, server set hai cookie HttpOnly: `accessToken` (15 phút) và `refreshToken` (7 ngày). Cần có `POST /auth/refresh` để cấp access token mới khi hết hạn, và `POST /auth/logout` để clear cookie. Middleware `authenticate` dùng Passport JWT Strategy đọc token từ cookie.
+**Bước 2 — Database schema (Prisma)** ✅
 
-**Bước 4 — OAuth: Google & GitHub**
+Schema PostgreSQL (`apps/server/prisma/schema.prisma`): **`User`**, **`Conversation`** (type DM | GROUP), **`ConversationParticipant`**, **`Message`** (reply qua `parentId`), **`MessageRead`**, **`Reaction`**, **`Friendship`**, **`Notification`**, **`OAuthAccount`**, **`RefreshToken`**, **`PasswordResetToken`**. Tên bảng/cột trong DB dùng **`snake_case`** (`@@map` / `@map`). Chưa có bảng `PinnedMessage` (dự kiến Bước 14).
 
-Dùng `passport-google-oauth20` và `passport-github2`. Callback URL sau login OAuth sẽ tạo hoặc tìm user trong DB (upsert theo email), rồi set cookie giống flow thường. Có bảng `OAuthAccount` để một user liên kết nhiều provider. Frontend redirect sang `/auth/google`, backend xử lý toàn bộ flow.
+---
 
-**Bước 5 — REST API: Rooms & Messages**
+**Bước 3 — Auth: Register/Login với JWT + HttpOnly cookie** ✅
 
-Các endpoints cơ bản: `GET /rooms` (danh sách room của user), `POST /rooms` (tạo group), `GET /rooms/:id/messages` (lấy history, phân trang cursor), `POST /rooms/:id/messages` (gửi message qua HTTP). Validate input bằng Zod. Tất cả route đều cần `authenticate` middleware. Đây là fallback khi Socket chưa connect.
+`POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/refresh`, `POST /api/auth/logout`, `GET /api/auth/me`. Cookie HttpOnly: `accessToken`, `refreshToken`; refresh token hash trong DB. Forgot/reset password (email). Middleware **`authenticate`** (Passport JWT đọc `accessToken` từ cookie).
+
+---
+
+**Bước 4 — OAuth: Google & GitHub** ✅
+
+Passport strategies; callback set cookie như flow thường; bảng **`OAuthAccount`**. Routes: `/api/auth/google`, `/api/auth/github` (+ callback).
+
+---
+
+**Bước 5 — REST API: Rooms & Messages** ✅
+
+Base URL: **`/api/rooms`**.
+
+| Method | Path | Mô tả |
+|--------|------|--------|
+| GET | `/api/rooms` | Danh sách conversation user tham gia (participants, lastMessage, unreadCount, sort theo tin mới nhất). |
+| POST | `/api/rooms` | Tạo nhóm GROUP (`name`, `participantIds`), transaction. |
+| GET | `/api/rooms/:id/messages` | Lịch sử tin nhắn, cursor + limit, phân quyền participant. |
+| POST | `/api/rooms/:id/messages` | Gửi tin (Zod: content và/hoặc file…). |
+
+Layer: **routes → validation → controller → service → repository**; Prisma **`select`** có chủ đích. **Không** tạo DM qua POST (DM sau này khi accept friend).
 
 ---
 
 ## Phase 2 — Real-time & Messaging
 
-**Bước 6 — Socket.IO server setup**
+**Bước 6 — Socket.IO server setup** ✅
 
-Attach Socket.IO vào cùng HTTP server với Express: `const io = new Server(httpServer, { cors: ... })`. Viết auth middleware cho Socket: đọc cookie `accessToken`, verify JWT, gán `socket.data.userId`. Khi client connect, tự động join vào tất cả room mà user là member. Đây là nền tảng để mọi tính năng real-time hoạt động.
+Socket.IO gắn cùng `httpServer` với Express. Cấu hình thực tế:
 
-**Bước 7 — Real-time messaging**
+- **`path: '/ws'`**, **`transports: ['websocket', 'polling']`**, CORS + `credentials`.
+- Auth middleware: token theo thứ tự **`handshake.auth.token`** → **`Authorization: Bearer`** → **cookie `accessToken`**; verify JWT → **`socket.data.userId`**.
+- Sau connect: join mọi **Socket.IO room** tên = **`conversationId`** (id trong DB), lấy từ `ConversationParticipant`.
 
-Client emit `message:send` với `{ roomId, content }`. Server nhận, lưu vào PostgreSQL qua Prisma, rồi `io.to(roomId).emit('message:new', messageData)` để broadcast cho tất cả member trong room. Frontend lắng nghe `message:new` và append vào danh sách message hiện tại trong Zustand store mà không cần refetch API.
+Client: hook **`useSocket()`** (`withCredentials`, cùng path). **Vite** proxy **`/ws`** → backend với **`ws: true`**. Dev log `userId` + `socket.id`; production log tối thiểu.
+
+Code: `apps/server/src/features/sockets/` (`socketServer.ts`, `socketAuth.middleware.ts`, `joinUserRooms.ts`, `socket.types.ts`).
+
+---
+
+**Bước 7 — Real-time messaging** ✅
+
+- Client emit **`chat:send`** với payload gồm **`conversationId`** (CUID) và cùng field body với REST (`content` / `fileUrl` / `fileType` / `parentMessageId`, validate ít nhất content hoặc fileUrl).
+- Server: **`messagesService.createMessage`** (một luồng với REST) → broadcast **`io.to(conversationId).emit('chat:new', { conversationId, message })`** — `message` cùng shape **MessageItemDto** như API.
+- Lỗi chỉ cho socket gửi: **`chat:error`** `{ code, message }`; có thể dùng **ack** callback tùy chọn.
+- Frontend: **`useChatRealtime(socket, connected)`** + Zustand **`useRealtimeMessagesStore`** (`byConversation`, append dedupe theo `id`); reset store khi logout. **`SocketBootstrap`** gọi chung một `useSocket()` (tránh hai kết nối).
+
+---
 
 **Bước 8 — Redis: Typing indicator & Presence**
 
-Cài `ioredis` và `@socket.io/redis-adapter`. Typing indicator: client emit `typing:start`, server gọi `redis.setex('typing:roomId:userId', 3, '1')` (TTL 3 giây), broadcast cho room. Presence: khi connect, `redis.sadd('online_users', userId)`; khi disconnect, `redis.srem`. Redis Adapter cho phép Socket.IO scale ngang nhiều server instance sau này.
+Cài `ioredis` và `@socket.io/redis-adapter`. Typing indicator: client emit `typing:start`, server gọi `redis.setex('typing:conversationId:userId', 3, '1')` (TTL 3 giây), broadcast cho room. Presence: khi connect, `redis.sadd('online_users', userId)`; khi disconnect, `redis.srem`. Redis Adapter cho phép Socket.IO scale ngang nhiều server instance sau này.
+
+---
 
 **Bước 9 — Read receipts & Unread count**
 
-Khi user mở một room, emit `room:read` với `roomId`. Server upsert bảng `MessageRead` (`userId`, `roomId`, `readAt`). Khi load danh sách room, query `unread_count` bằng cách đếm messages có `createdAt > readAt` của user đó. Broadcast `receipt:read` để người kia thấy tick xanh trong UI.
+Khi user mở một room, emit `room:read` với **`conversationId`**. Server cập nhật **`ConversationParticipant.lastReadAt`** (và/hoặc `MessageRead` tùy thiết kế). Unread đã dùng trong **GET /rooms**; có thể bổ sung broadcast **`receipt:read`** cho UI tick.
 
-**Bước 10 — Frontend real-time client**
+---
 
-Khởi tạo socket trong một custom hook `useSocket()` — connect một lần, reuse toàn app. TanStack Query xử lý initial data fetch (history, danh sách room), Zustand store cập nhật khi có Socket event (`message:new`, `user:online`, `typing:start`). Pattern: Query = server state, Zustand = real-time patch lên trên server state đó.
+**Bước 10 — Frontend real-time client (hoàn thiện UI)**
+
+Hook **`useSocket()`** đã có; **`chat:new`** đã đưa tin vào Zustand. Bước này mở rộng: TanStack Query làm initial fetch (rooms, history), merge với store realtime; lắng nghe thêm typing/presence khi có Bước 8–9. Pattern: Query = state server, Zustand = patch realtime.
 
 ---
 
@@ -52,17 +94,25 @@ Khởi tạo socket trong một custom hook `useSocket()` — connect một lầ
 
 Multer parse `multipart/form-data`, lưu file tạm vào memory (`memoryStorage`). Cloudinary SDK upload buffer lên cloud, trả về `secure_url`. Lưu URL vào cột `fileUrl` của bảng `Message` cùng `fileType` (image/video/document). Frontend hiển thị preview trước khi gửi, show progress bar trong lúc upload. Giới hạn size và mime type ở tầng Multer.
 
+---
+
 **Bước 12 — Emoji reactions**
 
 Bảng `Reaction` gồm `messageId`, `userId`, `emoji`. Endpoint `POST /messages/:id/reactions` dùng `upsert` — nếu cùng emoji thì delete (toggle off), khác emoji thì update. Server broadcast `reaction:update` kèm toàn bộ reaction summary của message đó. Frontend group reactions theo emoji, hiển thị count và highlight nếu user đã react.
 
+---
+
 **Bước 13 — Reply & Thread**
 
-Cột `parentMessageId` trong bảng `Message` — self-referencing FK. Khi gửi reply, client gửi kèm `parentMessageId`. Query message history join thêm parent để hiển thị preview tin nhắn được reply. Thread panel bên phải show tất cả reply của một message gốc — fetch riêng bằng `GET /messages/:id/thread`.
+Cột `parentId` trong `Message` — self-referencing FK. REST + **`chat:send`** đã hỗ trợ `parentMessageId`. Bổ sung UI thread / `GET /messages/:id/thread` nếu cần.
+
+---
 
 **Bước 14 — Pin message & Full-text search**
 
-Pin: bảng `PinnedMessage` (`roomId`, `messageId`, `pinnedBy`). Hiển thị pinned messages ở top room. Search: enable extension `pg_trgm` trong PostgreSQL, tạo GIN index trên cột `content`. Query `WHERE content ILIKE '%keyword%'` hoặc dùng `to_tsvector` cho full-text. Scope search theo `roomId` để chỉ tìm trong room hiện tại.
+Pin: có thể thêm bảng `PinnedMessage` (`conversationId`, `messageId`, `pinnedBy`). Search: `pg_trgm` / full-text trên `content`, scope theo `conversationId`.
+
+---
 
 **Bước 15 — Push notifications**
 
@@ -74,20 +124,28 @@ BullMQ + Redis làm queue. Khi có message mới, enqueue job `notify:message`. 
 
 **Bước 16 — Friend request system**
 
-Bảng `Friendship` với `status`: PENDING | ACCEPTED | BLOCKED. `POST /friends/request`, `POST /friends/accept/:id`, `DELETE /friends/:id`. Khi accept, tự động tạo DM room giữa hai người. Notification qua Socket và BullMQ push. Cần hoàn thành Phase 3 trước để có BullMQ infrastructure.
+Bảng `Friendship` với `status`: PENDING | ACCEPTED | BLOCKED. `POST /friends/request`, `POST /friends/accept/:id`, `DELETE /friends/:id`. Khi accept, tự động tạo DM **Conversation** giữa hai người. Notification qua Socket và BullMQ push. Cần hoàn thành Phase 3 trước để có BullMQ infrastructure.
+
+---
 
 **Bước 17 — Infinite scroll history**
 
-Cursor pagination: `GET /rooms/:id/messages?cursor=messageId&limit=30`. TanStack Query `useInfiniteQuery` load thêm khi scroll lên trên. Preserve scroll position bằng `useLayoutEffect` — tính `scrollHeight` trước và sau khi prepend messages mới, bù offset để user không bị nhảy. Reverse chronological order.
+Cursor pagination đã có: `GET /rooms/:id/messages?cursor=…&limit=…`. TanStack Query `useInfiniteQuery` load thêm khi scroll lên trên. Preserve scroll position bằng `useLayoutEffect` — tính `scrollHeight` trước và sau khi prepend messages mới, bù offset để user không bị nhảy.
+
+---
 
 **Bước 18 — Rate limiting & Security**
 
 `express-rate-limit` cho REST API (100 req/15 phút per IP). Redis-based rate limit cho Socket events (chống spam message). `helmet` cho security headers. Validate và sanitize tất cả input. Giới hạn file upload size. Log suspicious activity. Đây là bước quan trọng trước khi deploy production.
 
+---
+
 **Bước 19 — Mobile responsive UI**
 
 Breakpoint strategy: mobile-first với Tailwind. Layout: sidebar ẩn trên mobile, slide-in từ trái. `BottomNav` với các tab chính. Touch targets tối thiểu 44px. Input font-size 16px để tránh iOS zoom. Safe area insets cho notch/home indicator. Test kỹ trên iOS Safari và Android Chrome.
 
+---
+
 **Bước 20 — VPS deployment**
 
-Backend: PM2 với `ecosystem.config.js`, Nginx reverse proxy cho cả REST API và Socket.IO (`proxy_http_version 1.1`, `upgrade` và `connection` headers cho WebSocket). Docker Compose cho PostgreSQL và Redis. Certbot SSL. Frontend: build Vite, serve static qua Nginx. CI đơn giản: push → pull trên server → `pm2 reload`.
+Backend: PM2 với `ecosystem.config.js`, Nginx reverse proxy cho cả REST API và Socket.IO (`proxy_http_version 1.1`, `upgrade` và `connection` headers cho WebSocket; path **`/ws`** khớp client). Docker Compose cho PostgreSQL và Redis. Certbot SSL. Frontend: build Vite, serve static qua Nginx. CI đơn giản: push → pull trên server → `pm2 reload`.

@@ -6,9 +6,14 @@ import http from 'http'
 import cors from 'cors'
 import helmet from 'helmet'
 import cookieParser from 'cookie-parser'
+import passport from 'passport'
 import { env } from './config/env'
+import { initPassport } from './config/passport'
+import authRoutes from './modules/auth/auth.routes'
+import roomsRoutes from './features/rooms/rooms.routes'
+import messagesRoutes from './features/messages/messages.routes'
 import { globalErrorHandler } from './middlewares/globalErrorHandler'
-import { initSocketServer } from './sockets/socketServer'
+import { initSocketServer } from './features/sockets/socketServer'
 
 const app = express()
 const httpServer = http.createServer(app)
@@ -24,15 +29,17 @@ app.use(
 app.use(cookieParser())
 app.use(express.json())
 
+initPassport()
+app.use(passport.initialize())
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' })
 })
 
-// TODO: Mount feature routers here in subsequent steps
-// app.use('/api/auth', authRoutes)
-// app.use('/api/rooms', roomRoutes)
-// app.use('/api/messages', messageRoutes)
+app.use('/api/auth', authRoutes)
+app.use('/api/rooms', roomsRoutes)
+app.use('/api/rooms', messagesRoutes)
 
 // ─── Global error handler (must be LAST middleware) ───────────────────────────
 app.use(globalErrorHandler)
