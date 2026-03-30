@@ -1,0 +1,6 @@
+{
+  "name": "@chat-app/shared-constants",
+  "version": "1.0.0",
+  "main": "src/socket-events.ts",
+  "types": "src/socket-events.ts"
+}

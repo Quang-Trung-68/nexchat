@@ -1,0 +1,231 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum ConversationType {
+  DM
+  GROUP
+}
+
+enum ParticipantRole {
+  OWNER
+  MEMBER
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  SYSTEM
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
+}
+
+enum NotificationType {
+  NEW_MESSAGE
+  FRIEND_REQUEST
+  FRIEND_ACCEPTED
+  SYSTEM
+}
+
+enum OAuthProvider {
+  GOOGLE
+  GITHUB
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model User {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  username    String    @unique
+  displayName String
+  avatarUrl   String?
+  bio         String?
+  password    String?   // nullable because of OAuth users
+  isOnline    Boolean   @default(false)
+  lastSeenAt  DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime? // soft delete
+
+  // Relations
+  oauthAccounts   OAuthAccount[]
+  refreshTokens   RefreshToken[]
+  participations  ConversationParticipant[]
+  sentMessages    Message[]                 @relation("SentMessages")
+  messageReads    MessageRead[]
+  reactions       Reaction[]
+  sentFriendships Friendship[]              @relation("FriendshipRequester")
+  recvFriendships Friendship[]              @relation("FriendshipAddressee")
+  notifications   Notification[]
+
+  @@index([email])
+  @@index([username])
+  @@index([deletedAt])
+}
+
+model OAuthAccount {
+  id         String        @id @default(cuid())
+  userId     String
+  provider   OAuthProvider
+  providerId String        // ID from Google/GitHub
+  createdAt  DateTime      @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@index([userId])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+}
+
+model Conversation {
+  id          String           @id @default(cuid())
+  type        ConversationType
+  name        String?          // null for DM
+  avatarUrl   String?          // null for DM
+  description String?          // group description
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  deletedAt   DateTime?        // soft delete
+
+  // Relations
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@index([type])
+  @@index([deletedAt])
+}
+
+model ConversationParticipant {
+  id             String          @id @default(cuid())
+  conversationId String
+  userId         String
+  role           ParticipantRole @default(MEMBER)
+  lastReadAt     DateTime        @default(now()) // per-room: used to compute unread count
+  joinedAt       DateTime        @default(now())
+  deletedAt      DateTime?       // soft delete (leaving a group)
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@index([conversationId])
+  @@index([conversationId, deletedAt])
+}
+
+model Message {
+  id             String      @id @default(cuid())
+  conversationId String
+  senderId       String
+  type           MessageType @default(TEXT)
+  content        String?     // null for file-only messages
+  fileUrl        String?     // Cloudinary URL
+  fileName       String?     // original filename
+  fileSize       Int?        // bytes
+  parentId       String?     // reply/thread: points to parent message
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?   // soft delete
+
+  // Relations
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  parent       Message?     @relation("MessageReplies", fields: [parentId], references: [id])
+  replies      Message[]    @relation("MessageReplies")
+  reads        MessageRead[]
+  reactions    Reaction[]
+
+  // MANDATORY indexes for cursor-based pagination (hottest query in the app)
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+  @@index([parentId])
+  @@index([conversationId, deletedAt])
+}
+
+model MessageRead {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  readAt    DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([messageId])
+  @@index([userId])
+}
+
+model Reaction {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String   // e.g. "👍", "❤️", "😂"
+  createdAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji]) // each user can only react once with each emoji per message
+  @@index([messageId])
+}
+
+model Friendship {
+  id          String           @id @default(cuid())
+  requesterId String           // person who sent the request
+  addresseeId String           // person who received the request
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  requester User @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee User @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId]) // cannot send the same request twice
+  @@index([requesterId])
+  @@index([addresseeId])
+  @@index([status])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String           // recipient of the notification
+  type      NotificationType
+  title     String
+  body      String
+  isRead    Boolean          @default(false)
+  data      Json?            // flexible payload: { conversationId, senderId, ... }
+  createdAt DateTime         @default(now())
+  deletedAt DateTime?        // soft delete
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])    // very fast query for "unread notifications of user X"
+  @@index([userId, createdAt])
+  @@index([deletedAt])
+}
