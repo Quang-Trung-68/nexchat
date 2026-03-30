@@ -28,6 +28,7 @@ export const roomsRepository = {
           select: {
             id: true,
             username: true,
+            displayName: true,
             avatarUrl: true,
           },
         },
@@ -161,6 +162,7 @@ export const roomsRepository = {
             select: {
               id: true,
               username: true,
+              displayName: true,
               avatarUrl: true,
             },
           },

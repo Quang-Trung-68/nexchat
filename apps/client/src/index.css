@@ -1,4 +1,30 @@
 @import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+@theme {
+  --color-background: #ffffff;
+  --color-foreground: #0f172a;
+  --color-card: #ffffff;
+  --color-card-foreground: #0f172a;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #0f172a;
+  --color-primary: #0067ff;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f1f5f9;
+  --color-secondary-foreground: #0f172a;
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #64748b;
+  --color-accent: #e8f2ff;
+  --color-accent-foreground: #0f172a;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #fafafa;
+  --color-border: #e2e8f0;
+  --color-input: #e2e8f0;
+  --color-ring: #0067ff;
+  --color-sidebar: #0a1628;
+  --color-sidebar-foreground: #e8eef7;
+  --color-brand: #0067ff;
+}
 
 @layer components {
   .error-alert {

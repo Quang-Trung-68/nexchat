@@ -13,6 +13,9 @@ import { initPassport } from './config/passport'
 import authRoutes from './modules/auth/auth.routes'
 import roomsRoutes from './features/rooms/rooms.routes'
 import messagesRoutes from './features/messages/messages.routes'
+import messageAttachmentsRoutes from './features/messages/messageAttachments.routes'
+import configRoutes from './features/config/config.routes'
+import usersRoutes from './features/users/users.routes'
 import { globalErrorHandler } from './middlewares/globalErrorHandler'
 import { initSocketServer } from './features/sockets/socketServer'
 
@@ -41,6 +44,9 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authRoutes)
 app.use('/api/rooms', roomsRoutes)
 app.use('/api/rooms', messagesRoutes)
+app.use('/api/messages', messageAttachmentsRoutes)
+app.use('/api/config', configRoutes)
+app.use('/api/users', usersRoutes)
 
 // ─── Global error handler (must be LAST middleware) ───────────────────────────
 app.use(globalErrorHandler)
@@ -48,10 +54,12 @@ app.use(globalErrorHandler)
 // ─── Start server ─────────────────────────────────────────────────────────────
 void (async () => {
   try {
-    await initRedis()
-    console.log('[Server] Redis connected')
+    const mode = await initRedis()
+    if (mode === 'redis') {
+      console.log('[Server] Redis connected')
+    }
   } catch (e) {
-    console.error('[Server] Redis required for Socket.IO — kiểm tra REDIS_URL và Redis đang chạy.', e)
+    console.error('[Server] Redis bắt buộc (production) — kiểm tra REDIS_URL và Redis.', e)
     process.exit(1)
   }
 

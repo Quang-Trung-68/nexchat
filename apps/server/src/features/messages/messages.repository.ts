@@ -1,6 +1,33 @@
 import type { MessageType } from '@prisma/client'
 import { prisma } from '@/config/prisma'
 
+const senderSelect = {
+  id: true,
+  username: true,
+  displayName: true,
+  avatarUrl: true,
+} as const
+
+const attachmentSelect = {
+  id: true,
+  url: true,
+  sortOrder: true,
+} as const
+
+const messageListSelect = {
+  id: true,
+  content: true,
+  fileUrl: true,
+  type: true,
+  createdAt: true,
+  parentId: true,
+  sender: { select: senderSelect },
+  attachments: {
+    orderBy: { sortOrder: 'asc' as const },
+    select: attachmentSelect,
+  },
+} as const
+
 export const messagesRepository = {
   findParticipant(userId: string, conversationId: string) {
     return prisma.conversationParticipant.findFirst({
@@ -21,6 +48,22 @@ export const messagesRepository = {
         conversationId: true,
         createdAt: true,
         deletedAt: true,
+      },
+    })
+  },
+
+  findMessageForUpload(messageId: string, senderId: string) {
+    return prisma.message.findFirst({
+      where: {
+        id: messageId,
+        senderId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        conversationId: true,
+        senderId: true,
+        _count: { select: { attachments: true } },
       },
     })
   },
@@ -53,21 +96,14 @@ export const messagesRepository = {
       where,
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take,
-      select: {
-        id: true,
-        content: true,
-        fileUrl: true,
-        type: true,
-        createdAt: true,
-        parentId: true,
-        sender: {
-          select: {
-            id: true,
-            username: true,
-            avatarUrl: true,
-          },
-        },
-      },
+      select: messageListSelect,
+    })
+  },
+
+  findMessageByIdWithListShape(messageId: string) {
+    return prisma.message.findFirst({
+      where: { id: messageId, deletedAt: null },
+      select: messageListSelect,
     })
   },
 
@@ -92,21 +128,20 @@ export const messagesRepository = {
         fileSize: input.fileSize,
         parentId: input.parentId,
       },
-      select: {
-        id: true,
-        content: true,
-        fileUrl: true,
-        type: true,
-        createdAt: true,
-        parentId: true,
-        sender: {
-          select: {
-            id: true,
-            username: true,
-            avatarUrl: true,
-          },
-        },
-      },
+      select: messageListSelect,
+    })
+  },
+
+  createAttachments(
+    messageId: string,
+    items: { url: string; sortOrder: number }[]
+  ) {
+    return prisma.messageAttachment.createMany({
+      data: items.map((row) => ({
+        messageId,
+        url: row.url,
+        sortOrder: row.sortOrder,
+      })),
     })
   },
 }

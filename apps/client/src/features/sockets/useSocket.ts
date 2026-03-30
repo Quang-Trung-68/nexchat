@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { io, type Socket } from 'socket.io-client'
 import { useAuthStore } from '@/features/auth/store/auth.store'
 import { useRealtimeMessagesStore } from '@/features/messages/store/realtimeMessages.store'
+import { usePendingImageUploadsStore } from '@/features/messages/store/pendingImageUploads.store'
 import { useTypingPresenceStore } from '@/features/sockets/typingPresence.store'
 
 /**
@@ -17,6 +18,7 @@ export function useSocket() {
   useEffect(() => {
     if (!isAuthenticated) {
       useRealtimeMessagesStore.getState().reset()
+      usePendingImageUploadsStore.getState().reset()
       useTypingPresenceStore.getState().reset()
       setSocket((prev) => {
         prev?.close()

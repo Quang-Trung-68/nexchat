@@ -4,6 +4,8 @@
 export const SOCKET_EVENTS = {
   CHAT_SEND: 'chat:send',
   CHAT_NEW: 'chat:new',
+  /** Server → room: tin đã có (cập nhật attachments sau upload Cloudinary). */
+  CHAT_MESSAGE_UPDATED: 'chat:message:updated',
   CHAT_ERROR: 'chat:error',
   TYPING_START: 'typing:start',
   TYPING_STOP: 'typing:stop',
@@ -13,6 +15,8 @@ export const SOCKET_EVENTS = {
   ROOM_READ: 'room:read',
   /** Server → room: ai đó vừa cập nhật lastReadAt (tick / refresh unread). */
   RECEIPT_READ: 'receipt:read',
+  /** Client → server: join Socket.IO room sau khi có membership mới (tạo nhóm / refetch). */
+  CONVERSATION_JOIN: 'conversation:join',
 } as const
 
 export type SocketEventKey = keyof typeof SOCKET_EVENTS

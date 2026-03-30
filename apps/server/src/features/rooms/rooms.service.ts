@@ -65,6 +65,7 @@ export const roomsService = {
         participants: parts.map((p) => ({
           id: p.user.id,
           username: p.user.username,
+          displayName: p.user.displayName,
           avatarUrl: p.user.avatarUrl,
         })),
         lastMessage: last
@@ -118,6 +119,7 @@ export const roomsService = {
       participants: participants.map((p) => ({
         id: p.user.id,
         username: p.user.username,
+        displayName: p.user.displayName,
         avatarUrl: p.user.avatarUrl,
         role: p.role,
       })),

@@ -3,6 +3,7 @@ import type { ConversationType } from '@prisma/client'
 export interface RoomParticipantDto {
   id: string
   username: string
+  displayName: string
   avatarUrl: string | null
 }
 

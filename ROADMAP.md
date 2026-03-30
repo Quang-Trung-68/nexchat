@@ -95,19 +95,37 @@ Code: `rooms.repository` (`findLastMessageCreatedAt`, `updateParticipantLastRead
 
 ---
 
-**Bước 10 — Frontend real-time client (hoàn thiện UI)**
+**Bước 10 — Frontend real-time client (hoàn thiện UI)** ✅
 
-Hook **`useSocket()`** đã có; **`chat:new`** đã đưa tin vào Zustand; typing/presence đã có store + **`useTypingPresenceRealtime`** (Bước 8); read receipts đã có **`useReceiptRealtime`** + **`useRoomReadSync`** (Bước 9). Bước này mở rộng: TanStack Query làm initial fetch (rooms, history), merge với store realtime; bổ sung UI (sidebar, composer, typing line…) và truyền **`conversationId`** vào **`useRoomReadSync`**. Pattern: Query = state server, Zustand = patch realtime.
+- **Routing:** `/` → redirect `/chat`; **`/chat`**, **`/chat/:conversationId`** (protected). Không chọn room → màn welcome; chọn room → thread + panel phải (toggle).
+- **TanStack Query:** **`useRoomsQuery`** (GET `/api/rooms`); **`useInfiniteQuery`** + **`fetchMessagesPage`** — **`useRoomMessagesInfinite`**, cursor `nextCursor`, **`fetchNextPage`** khi **scroll lên** gần đỉnh (ngưỡng ~80px). **`useMergedRoomMessages`** gộp trang infinite + Zustand **`useRealtimeMessagesStore`** (dedupe `id`, sort thời gian tăng).
+- **Read:** **`useRoomReadSync`** chỉ gọi trong **`ChatThread`** (có `conversationId`); **`SocketBootstrap`** không còn `useRoomReadSync(null)`.
+- **Gửi tin:** **`ChatComposer`** — ưu tiên **`chat:send`** + ack; lỗi → **`POST /api/rooms/:id/messages`**. Typing: **`emitTypingStart` / `emitTypingStop`** khi gõ.
+- **UI (tham chiếu Zalo PC):** Cột 1 nav xanh đậm (`bg-sidebar`), cột 2 danh sách (tìm kiếm, tab **Tất cả / Chưa đọc**, badge unread, tạo nhóm, đăng xuất), cột 3 thread + composer + dòng typing, cột 4 **Thông tin hội thoại** (thành viên, nút placeholder). Nút gọi / upload / emoji: disabled + tooltip “Sắp có”.
+- **Tạo nhóm:** **`GET /api/users`** (danh sách user trừ bản thân) + **`CreateGroupDialog`** → **`POST /api/rooms`**, redirect vào room mới.
+- **Socket room sau membership mới:** **`conversation:join`** `{ conversationId }` — server kiểm tra participant rồi **`socket.join`**; client **`useJoinSocketRooms(rooms)`** khi danh sách room đổi (tạo nhóm / refetch), vì join lúc connect không bao gồm room tạo sau đó.
+- **Realtime + sidebar:** `chat:new` → append Zustand + **`invalidateQueries(['rooms'])`** để preview / unread cập nhật ngay.
+- **Sidebar:** badge đỏ **trước** timestamp; **in đậm** tiêu đề + preview khi `unreadCount > 0` và không phải room đang mở; thời gian **`formatSidebarTime`** (phút/giờ trước, hôm qua, dd/mm, dd/mm/yyyy).
+- **Styling:** **Tailwind 4** + **shadcn/ui** (Radix + `class-variance-authority` + `cn`): component trong **`src/components/ui/`**; **chỉ** mở rộng **`index.css`** (`@theme` màu, `@plugin tailwindcss-animate`) — không thêm file CSS riêng cho màn chat.
+
+Code: `features/chat/` (`pages/ChatPage`, `components/*`), `messages/api`, `queries/useRoomMessagesInfinite`, `hooks/useMergedRoomMessages`, `sockets/useJoinSocketRooms`; server `features/users/`, `conversationJoin.handlers.ts`.
 
 ---
 
 ## Phase 3 — Advanced Features
 
-**Bước 11 — File & image upload**
+**Bước 11 — Ảnh chat (nhiều ảnh / một bubble) — đã triển khai (ảnh only; video/file sau)** ✅
 
-Multer parse `multipart/form-data`, lưu file tạm vào memory (`memoryStorage`). Cloudinary SDK upload buffer lên cloud, trả về `secure_url`. Lưu URL vào cột `fileUrl` của bảng `Message` cùng `fileType` (image/video/document). Frontend hiển thị preview trước khi gửi, show progress bar trong lúc upload. Giới hạn size và mime type ở tầng Multer.
+- **Schema:** bảng **`message_attachments`** (`messageId`, `url`, `sortOrder`); `Message` giữ `fileUrl`/`fileType` cho tin legacy một file.
+- **Config (không hardcode số trong code nghiệp vụ):** `packages/shared-constants/src/upload-defaults.ts` (`UPLOAD_DEFAULTS`); server đọc **`UPLOAD_MAX_IMAGES_PER_MESSAGE`**, **`UPLOAD_MAX_IMAGE_BYTES_PER_FILE`**, **`UPLOAD_MAX_IMAGE_DIMENSION_PX`** (fallback mặc định). Client lấy **`GET /api/config/upload`** (auth) để validate + nén.
+- **Luồng:** preview ảnh trong RAM → **Gửi** → `POST /api/rooms/:id/messages` với `content?` + **`plannedImageCount`** (và `chat:send` cùng field) → **`POST /api/messages/:messageId/images`** (multipart `images[]`) → Cloudinary → ghi `MessageAttachment` → **`chat:message:updated`** toàn room.
+- **Cloudinary:** `CLOUDINARY_*` trong `.env`; thiếu → upload trả 503. Upload **chỉ qua backend** (Multer `memoryStorage`).
+- **Client:** nén nhẹ (`compressImageIfNeeded` + `maxImageDimensionPx`) trước multipart; lỗi upload → banner + **“Thử lại upload”** (tin chữ đã gửi). Bubble: chữ trên, lưới ảnh dưới.
+
+Code: `apps/server/src/config/upload.config.ts`, `cloudinary.client.ts`, `features/messages/*`, `features/config/*`, `messageAttachments.routes.ts`, `chatMessageBroadcast.ts`; client `features/messages/api`, `features/config/uploadConfig.api.ts`, `lib/imageCompress.ts`, `ChatComposer.tsx`, `ChatThread.tsx`, `realtimeMessages.store` (upsert), `useChatRealtime` (`CHAT_MESSAGE_UPDATED`).
 
 ---
+
 
 **Bước 12 — Emoji reactions**
 

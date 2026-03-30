@@ -1,11 +1,45 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import dotenv from 'dotenv'
-dotenv.config()
+
+/** concurrently / npm workspaces đôi khi để cwd ở gốc repo — vẫn load được apps/server/.env */
+function loadServerEnv(): void {
+  const cwd = process.cwd()
+  const candidates = [
+    path.join(cwd, '.env'),
+    path.join(cwd, 'apps', 'server', '.env'),
+  ]
+  for (const p of candidates) {
+    if (fs.existsSync(p)) {
+      dotenv.config({ path: p })
+      return
+    }
+  }
+  dotenv.config()
+}
+loadServerEnv()
+
+/** Tránh `localhost` → ::1 trong khi Redis thường chỉ bind IPv4 (127.0.0.1), khiến ioredis không ping được. */
+function redisUrlPreferIpv4Loopback(url: string): string {
+  const nodeEnv = process.env.NODE_ENV || 'development'
+  if (nodeEnv === 'production') return url
+  try {
+    const u = new URL(url)
+    if (u.hostname === 'localhost') {
+      u.hostname = '127.0.0.1'
+      return u.toString()
+    }
+  } catch {
+    /* giữ nguyên nếu URL không chuẩn */
+  }
+  return url
+}
 
 export const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: parseInt(process.env.PORT || '5000', 10),
   DATABASE_URL: process.env.DATABASE_URL!,
-  REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379',
+  REDIS_URL: redisUrlPreferIpv4Loopback(process.env.REDIS_URL || 'redis://127.0.0.1:6379'),
   JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET!,
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET!,
   JWT_ACCESS_EXPIRES_IN: process.env.JWT_ACCESS_EXPIRES_IN || '15m',

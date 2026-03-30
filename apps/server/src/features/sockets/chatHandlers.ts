@@ -2,10 +2,11 @@ import type { Server, Socket } from 'socket.io'
 import { SOCKET_EVENTS } from '@chat-app/shared-constants'
 import { chatSendPayloadSchema } from '@/features/messages/messages.validation'
 import { messagesService } from '@/features/messages/messages.service'
+import type { MessageItemDto } from '@/features/messages/messages.types'
 import { AppError } from '@/shared/errors/AppError'
 
 type ChatSendAck =
-  | { ok: true; messageId: string }
+  | { ok: true; message: MessageItemDto }
   | { ok: false; code: string; message: string }
 
 export function registerChatSocketHandlers(io: Server, socket: Socket) {
@@ -28,7 +29,7 @@ export function registerChatSocketHandlers(io: Server, socket: Socket) {
         body
       )
       io.to(conversationId).emit(SOCKET_EVENTS.CHAT_NEW, { conversationId, message })
-      ack?.({ ok: true, messageId: message.id })
+      ack?.({ ok: true, message })
     } catch (e) {
       if (e instanceof AppError) {
         const err = { code: e.code, message: e.message }

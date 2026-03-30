@@ -2,25 +2,33 @@ import { create } from 'zustand'
 import type { MessageItemDto } from '../types/message.types'
 
 interface RealtimeMessagesState {
-  /** Tin nhận qua Socket `chat:new`, gom theo conversation (append, dedupe theo id). */
+  /** Tin nhận qua Socket — gom theo conversation; cùng `id` thì ghi đè (cập nhật attachments). */
   byConversation: Record<string, MessageItemDto[]>
-  appendFromSocket: (conversationId: string, message: MessageItemDto) => void
+  upsertFromSocket: (conversationId: string, message: MessageItemDto) => void
   clearConversation: (conversationId: string) => void
   reset: () => void
 }
 
 export const useRealtimeMessagesStore = create<RealtimeMessagesState>((set) => ({
   byConversation: {},
-  appendFromSocket: (conversationId, message) =>
+  upsertFromSocket: (conversationId, message) =>
     set((state) => {
       const prev = state.byConversation[conversationId] ?? []
-      if (prev.some((m) => m.id === message.id)) {
-        return state
+      const idx = prev.findIndex((m) => m.id === message.id)
+      if (idx === -1) {
+        return {
+          byConversation: {
+            ...state.byConversation,
+            [conversationId]: [...prev, message],
+          },
+        }
       }
+      const next = [...prev]
+      next[idx] = message
       return {
         byConversation: {
           ...state.byConversation,
-          [conversationId]: [...prev, message],
+          [conversationId]: next,
         },
       }
     }),

@@ -7,20 +7,22 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev --workspace=apps/server\" \"npm run dev --workspace=apps/client\"",
+    "dev": "concurrently -n redis,server,client -c red,cyan,green \"npm run dev:redis\" \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:redis": "bash scripts/redis-dev.sh",
     "dev:server": "npm run dev --workspace=apps/server",
     "dev:client": "npm run dev --workspace=apps/client",
+    "dev:no-redis": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "build": "npm run build --workspaces --if-present",
     "lint": "eslint . --ext .ts,.tsx"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2",
-    "eslint": "^8.57.0",
-    "prettier": "^3.2.5",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-react": "^7.34.0",
-    "eslint-plugin-react-hooks": "^4.6.0"
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "prettier": "^3.2.5"
   }
 }

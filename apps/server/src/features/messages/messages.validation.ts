@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express'
 import { z, type ZodSchema } from 'zod'
+import { getUploadConfig } from '@/config/upload.config'
 import { AppError } from '@/shared/errors/AppError'
 
 const apiFileType = z.enum(['IMAGE', 'VIDEO', 'DOCUMENT', 'AUDIO'])
@@ -15,20 +16,28 @@ export const createMessageSchema = z
     fileUrl: z.string().url().optional(),
     fileType: apiFileType.optional(),
     parentMessageId: z.string().cuid().optional(),
+    plannedImageCount: z.number().int().min(0).optional(),
   })
-  .refine(
-    (data) => {
-      const hasContent = data.content !== undefined && data.content.trim().length > 0
-      const hasFile = data.fileUrl !== undefined && data.fileUrl.length > 0
-      return hasContent || hasFile
-    },
-    { message: 'Cần ít nhất content hoặc fileUrl', path: ['content'] }
-  )
-
-/** Socket `typing:start` / `typing:stop` — chỉ cần room. */
-export const typingConversationPayloadSchema = z.object({
-  conversationId: z.string().cuid(),
-})
+  .superRefine((data, ctx) => {
+    const hasContent = data.content !== undefined && data.content.trim().length > 0
+    const hasFile = data.fileUrl !== undefined && data.fileUrl.length > 0
+    const planned = data.plannedImageCount ?? 0
+    if (!hasContent && !hasFile && planned < 1) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Cần ít nhất nội dung, file hoặc plannedImageCount > 0',
+        path: ['content'],
+      })
+    }
+    const max = getUploadConfig().maxImagesPerMessage
+    if (planned > max) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `Tối đa ${max} ảnh mỗi tin`,
+        path: ['plannedImageCount'],
+      })
+    }
+  })
 
 /** Socket `chat:send` — cùng rule body với REST + conversationId. */
 export const chatSendPayloadSchema = z
@@ -38,15 +47,33 @@ export const chatSendPayloadSchema = z
     fileUrl: z.string().url().optional(),
     fileType: apiFileType.optional(),
     parentMessageId: z.string().cuid().optional(),
+    plannedImageCount: z.number().int().min(0).optional(),
   })
-  .refine(
-    (data) => {
-      const hasContent = data.content !== undefined && data.content.trim().length > 0
-      const hasFile = data.fileUrl !== undefined && data.fileUrl.length > 0
-      return hasContent || hasFile
-    },
-    { message: 'Cần ít nhất content hoặc fileUrl', path: ['content'] }
-  )
+  .superRefine((data, ctx) => {
+    const hasContent = data.content !== undefined && data.content.trim().length > 0
+    const hasFile = data.fileUrl !== undefined && data.fileUrl.length > 0
+    const planned = data.plannedImageCount ?? 0
+    if (!hasContent && !hasFile && planned < 1) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Cần ít nhất nội dung, file hoặc plannedImageCount > 0',
+        path: ['content'],
+      })
+    }
+    const max = getUploadConfig().maxImagesPerMessage
+    if (planned > max) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `Tối đa ${max} ảnh mỗi tin`,
+        path: ['plannedImageCount'],
+      })
+    }
+  })
+
+/** Socket `typing:start` / `typing:stop` — chỉ cần room. */
+export const typingConversationPayloadSchema = z.object({
+  conversationId: z.string().cuid(),
+})
 
 export const validateBody =
   (schema: ZodSchema) => (req: Request, _res: Response, next: NextFunction) => {
