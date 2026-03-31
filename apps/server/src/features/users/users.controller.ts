@@ -10,3 +10,14 @@ export async function listUsers(req: Request, res: Response, next: NextFunction)
     next(e)
   }
 }
+
+export async function lookupUser(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = req.user!.id
+    const { q } = req.query as { q: string }
+    const data = await usersService.lookupExactUser(userId, q)
+    res.json({ success: true, data })
+  } catch (e) {
+    next(e)
+  }
+}

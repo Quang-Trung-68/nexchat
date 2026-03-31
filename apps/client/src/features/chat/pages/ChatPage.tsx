@@ -2,13 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useRoomsQuery } from '@/features/rooms/queries/rooms.queries'
-import { useJoinSocketRooms } from '@/features/sockets/useJoinSocketRooms'
 import { ChatNavRail } from '../components/ChatNavRail'
 import { ChatRoomList } from '../components/ChatRoomList'
 import { ChatWelcome } from '../components/ChatWelcome'
 import { ChatThread } from '../components/ChatThread'
 import { ChatRightPanel } from '../components/ChatRightPanel'
 import { useActiveConversationStore } from '../store/activeConversation.store'
+import { useContactsPendingBadge } from '@/features/contacts/hooks/useContactsPendingBadge'
 
 export function ChatPage() {
   const { conversationId } = useParams<{ conversationId: string }>()
@@ -19,12 +19,11 @@ export function ChatPage() {
     return () => setActiveConversationId(null)
   }, [conversationId, setActiveConversationId])
   const { user, logout } = useAuth()
+  const contactsPendingBadge = useContactsPendingBadge()
   const { data: rooms } = useRoomsQuery()
   const [rightOpen, setRightOpen] = useState(true)
   const [roomSearchOpen, setRoomSearchOpen] = useState(false)
   const scrollToMessageRef = useRef<(messageId: string) => Promise<void>>(async () => {})
-
-  useJoinSocketRooms(rooms)
 
   const room = rooms?.find((r) => r.id === conversationId)
 
@@ -50,6 +49,7 @@ export function ChatPage() {
         displayName={user?.displayName}
         avatarUrl={user?.avatarUrl}
         onLogout={() => void logout()}
+        contactsPendingBadge={contactsPendingBadge}
       />
       <div className="flex min-h-0 min-w-0 flex-1">
         <ChatRoomList rooms={rooms} currentUserId={user?.id} />

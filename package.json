@@ -14,7 +14,9 @@
     "dev:client": "npm run dev --workspace=apps/client",
     "dev:no-redis": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "build": "npm run build --workspaces --if-present",
-    "lint": "eslint . --ext .ts,.tsx"
+    "lint": "eslint . --ext .ts,.tsx",
+    "push:selftest": "npm run push:selftest --workspace=apps/server",
+    "push:reset-dev": "npm run push:reset-dev --workspace=apps/server"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.0.0",

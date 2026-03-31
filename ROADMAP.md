@@ -161,15 +161,24 @@ Code: server `messageReactions.routes.ts`, `messageReactions.controller.ts`, `me
 - **DB:** bảng **`push_subscriptions`** (`endpoint` unique, `p256dh`, `auth`); migration **`20260331180000_push_subscriptions`**.
 - **API:** `GET /api/push/vapid-public-key` (public); `POST /api/push/subscribe` / **`/unsubscribe`** (auth).
 - **Env:** `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (+ `CLIENT_URL` cho deep link). Sinh key: `npx web-push generate-vapid-keys` (trong `apps/server`).
-- **Client:** `public/sw.js` — push + `notificationclick` mở `/chat/:conversationId`. **`ensurePushSubscriptionRegistered`** (VAPID + `POST /subscribe`). **`PushNotificationBanner`** — sau đăng nhập: nếu `Notification.permission === 'granted'` → đăng ký im lặng; nếu `default` → banner (Để sau = ẩn phiên tab). **`useDocumentTitle`** + **`titleBar.store`** — `(n) Chat App`, flash **`● Người gửi: …`** khi tab ẩn + `chat:new`, **`navigator.setAppBadge`** nếu hỗ trợ.
+- **Client:** `public/sw.js` — push + `notificationclick` mở `/chat/:conversationId`. **`ensurePushSubscriptionRegistered`** (VAPID + `POST /subscribe`). **`PushPermissionBootstrap`** — sau đăng nhập: popup quyền **`Notification`** mặc định của trình duyệt; nếu cần gesture, thử lại sau lần tương tác đầu; đã **`granted`** → đăng ký push im lặng. **`useDocumentTitle`** + **`titleBar.store`** — `(n) Chat App`, flash tiêu đề khi tab ẩn + `chat:new`, **`navigator.setAppBadge`** nếu hỗ trợ.
 
 ---
 
 ## Phase 4 — Polish & Scale
 
-**Bước 16 — Friend request system**
+**Bước 16 — Friend request system** ✅
 
-Bảng `Friendship` với `status`: PENDING | ACCEPTED | BLOCKED. `POST /friends/request`, `POST /friends/accept/:id`, `DELETE /friends/:id`. Khi accept, tự động tạo DM **Conversation** giữa hai người. Notification qua Socket và BullMQ push. Cần hoàn thành Phase 3 trước để có BullMQ infrastructure.
+- **Schema:** `Friendship` (đã có) + cột tùy chọn **`users.phone`** (unique, exact lookup). Đăng ký: `phone` 8–15 chữ số tùy chọn.
+- **Tìm người (bảo mật):** `GET /api/users/lookup?q=` — **chỉ khớp chính xác** `username` **hoặc** `email` **hoặc** `phone` (không LIKE / không gợi ý). Rate limit 40/phút. Ẩn kết quả nếu trùng chính mình.
+- **REST:** `POST /api/friends/request` `{ addresseeId }` (CUID); `POST /api/friends/accept/:friendshipId`; `DELETE /api/friends/:friendshipId` (hủy lời mời / từ chối / hủy kết bạn). `GET /api/friends/incoming`; `GET /api/friends/relationship/:otherUserId` (trạng thái với người kia). **Mutual:** nếu đã có PENDING chiều ngược, gửi request → chấp nhận kép + tạo DM.
+- **DM:** Một DM giữa hai user (`getOrCreateDmId`) khi friendship chuyển ACCEPTED.
+- **DB:** `Notification` (FRIEND_REQUEST / FRIEND_ACCEPTED) khi gửi / chấp nhận.
+- **Socket:** `socket.join('user:'+userId)`; `friend:request:received`, `friend:updated` → client invalidate `friends` + `rooms`.
+- **Push:** Cùng queue `notify-message`, job `notify:friend_request` / `notify:friend_accepted` (worker mở rộng).
+- **Client:** `AddFriendDialog` — ô tìm debounce, placeholder *"Tìm kiếm với tên người dùng, email hoặc số điện thoại..."*, empty *"Không có người dùng phù hợp với từ khóa tìm kiếm."*, badge lời mời đến.
+
+Code: `features/friends/*`, `users.lookup`, `friendSocket.emit.ts`, `notifyMessage.queue.ts` + `notifyMessage.worker.ts`, `AddFriendDialog.tsx`, `packages/shared-constants/user-lookup.ts`.
 
 ---
 

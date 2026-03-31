@@ -40,6 +40,7 @@ export function initSocketServer(httpServer: HttpServer) {
 
     try {
       const roomIds = await joinConversationRoomsForSocket(socket, userId)
+      await socket.join(`user:${userId}`)
       if (env.NODE_ENV === 'development') {
         console.log(`[Socket] joined ${roomIds.length} conversation(s) user=${userId}`)
       }

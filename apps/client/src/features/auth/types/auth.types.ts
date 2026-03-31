@@ -22,6 +22,7 @@ export interface RegisterPayload {
   displayName: string
   password: string
   confirmPassword: string
+  phone?: string
 }
 
 export interface LoginPayload {

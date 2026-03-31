@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { api } from '@/services/api'
 import { roomsKeys } from '@/features/rooms/rooms.keys'
-import { useUsersQuery } from '@/features/users/queries/users.queries'
+import { useFriendsAcceptedQuery } from '@/features/friends/hooks/useFriendsAcceptedQuery'
 import {
   Dialog,
   DialogContent,
@@ -27,7 +27,8 @@ export function CreateGroupDialog() {
   const [err, setErr] = useState<string | null>(null)
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const { data: users, isLoading } = useUsersQuery()
+  const { data: friendsPayload, isLoading } = useFriendsAcceptedQuery(open)
+  const friendRows = friendsPayload?.items ?? []
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -72,7 +73,9 @@ export function CreateGroupDialog() {
       <DialogContent className="max-h-[85vh] overflow-hidden sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Tạo nhóm</DialogTitle>
-          <DialogDescription>Đặt tên nhóm và chọn thành viên từ danh sách.</DialogDescription>
+          <DialogDescription>
+            Đặt tên nhóm và chọn thành viên trong danh sách bạn bè (đã kết bạn).
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
@@ -91,8 +94,12 @@ export function CreateGroupDialog() {
               <div className="space-y-2 p-3">
                 {isLoading ? (
                   <p className="text-sm text-muted-foreground">Đang tải…</p>
+                ) : friendRows.length === 0 ? (
+                  <p className="p-2 text-sm text-muted-foreground">
+                    Chưa có bạn bè — chỉ có thể mời người đã kết bạn vào nhóm.
+                  </p>
                 ) : (
-                  users?.map((u) => (
+                  friendRows.map(({ user: u }) => (
                     <label
                       key={u.id}
                       className="flex cursor-pointer items-center gap-3 rounded-md p-2 hover:bg-muted"

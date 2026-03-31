@@ -2,6 +2,14 @@ import type { Request, Response, NextFunction } from 'express'
 import { z, type ZodSchema } from 'zod'
 import { AppError } from '@/shared/errors/AppError'
 
+const optionalPhoneSchema = z.preprocess(
+  (val: unknown) => {
+    if (val === undefined || val === null || val === '') return undefined
+    return val
+  },
+  z.string().regex(/^[0-9]{8,15}$/, 'Số điện thoại chỉ gồm 8–15 chữ số').optional()
+)
+
 export const registerSchema = z
   .object({
     email: z.string().email('Email không hợp lệ'),
@@ -11,6 +19,7 @@ export const registerSchema = z
       .max(20)
       .regex(/^[a-z0-9_]+$/, 'Username chỉ được chứa chữ thường, số, gạch dưới'),
     displayName: z.string().min(1).max(50),
+    phone: optionalPhoneSchema,
     password: z
       .string()
       .min(8)

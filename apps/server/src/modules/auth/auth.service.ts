@@ -55,12 +55,21 @@ export const authService = {
     if (existingUsername) {
       throw new AppError('Username đã được sử dụng', 409, 'ALREADY_EXISTS')
     }
+    if (dto.phone) {
+      const existingPhone = await prisma.user.findFirst({
+        where: { phone: dto.phone, deletedAt: null },
+      })
+      if (existingPhone) {
+        throw new AppError('Số điện thoại đã được sử dụng', 409, 'ALREADY_EXISTS')
+      }
+    }
     const hashed = await bcrypt.hash(dto.password, 10)
     const user = await authRepository.createUser({
       email: dto.email,
       username: dto.username,
       displayName: dto.displayName,
       password: hashed,
+      ...(dto.phone ? { phone: dto.phone } : {}),
     })
     return omitPassword(user)
   },

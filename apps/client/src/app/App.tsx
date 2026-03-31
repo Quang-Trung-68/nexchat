@@ -4,7 +4,7 @@ import { ErrorBoundary } from './ErrorBoundary'
 import { AuthBootstrap } from './AuthBootstrap'
 import { SocketBootstrap } from './SocketBootstrap'
 import { DocumentTitleSync } from '@/features/app/DocumentTitleSync'
-import { PushNotificationBanner } from '@/features/push/components/PushNotificationBanner'
+import { PushPermissionBootstrap } from './PushPermissionBootstrap'
 import { AppRoutes } from '@/routes'
 
 export function App() {
@@ -14,7 +14,7 @@ export function App() {
         <AuthBootstrap />
         <DocumentTitleSync />
         <SocketBootstrap />
-        <PushNotificationBanner />
+        <PushPermissionBootstrap />
         <ErrorBoundary>
           <AppRoutes />
         </ErrorBoundary>

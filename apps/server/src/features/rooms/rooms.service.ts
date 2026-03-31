@@ -1,6 +1,7 @@
 import type { MessageType } from '@prisma/client'
 import { MAX_PINS_PER_CONVERSATION } from '@chat-app/shared-constants'
 import { AppError } from '@/shared/errors/AppError'
+import { friendsService } from '@/features/friends/friends.service'
 import { messagesRepository } from '@/features/messages/messages.repository'
 import { io } from '@/features/sockets/socketServer'
 import { emitPinsUpdatedToRoom } from '@/features/sockets/pinsBroadcast'
@@ -118,6 +119,17 @@ export const roomsService = {
     const users = await roomsRepository.findUsersByIds(uniqueParticipantIds)
     if (users.length !== uniqueParticipantIds.length) {
       throw new AppError('Một hoặc nhiều participant không tồn tại', 400, 'INVALID_PARTICIPANTS')
+    }
+
+    for (const pid of uniqueParticipantIds) {
+      const rel = await friendsService.getRelationship(userId, pid)
+      if (rel.status !== 'accepted') {
+        throw new AppError(
+          'Chỉ có thể thêm bạn bè (đã kết bạn) vào nhóm',
+          403,
+          'NOT_FRIENDS'
+        )
+      }
     }
 
     const { conversation, participants } = await roomsRepository.createGroupWithParticipants({

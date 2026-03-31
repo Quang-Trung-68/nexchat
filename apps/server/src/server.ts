@@ -18,6 +18,7 @@ import messageAttachmentsRoutes from './features/messages/messageAttachments.rou
 import messageReactionsRoutes from './features/messages/messageReactions.routes'
 import configRoutes from './features/config/config.routes'
 import usersRoutes from './features/users/users.routes'
+import friendsRoutes from './features/friends/friends.routes'
 import pushRoutes from './features/push/push.routes'
 import { globalErrorHandler } from './middlewares/globalErrorHandler'
 import { initSocketServer } from './features/sockets/socketServer'
@@ -52,6 +53,7 @@ app.use('/api/messages', messageAttachmentsRoutes)
 app.use('/api/messages', messageReactionsRoutes)
 app.use('/api/config', configRoutes)
 app.use('/api/users', usersRoutes)
+app.use('/api/friends', friendsRoutes)
 app.use('/api/push', pushRoutes)
 
 // ─── Global error handler (must be LAST middleware) ───────────────────────────

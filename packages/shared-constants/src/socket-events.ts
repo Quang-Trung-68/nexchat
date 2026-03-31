@@ -21,6 +21,10 @@ export const SOCKET_EVENTS = {
   CONVERSATION_JOIN: 'conversation:join',
   /** Server → room: danh sách ghim thay đổi (client invalidate GET pins). */
   ROOM_PINS_UPDATED: 'room:pins:updated',
+  /** Server → user:{userId}: có lời mời kết bạn mới. */
+  FRIEND_REQUEST_RECEIVED: 'friend:request:received',
+  /** Server → user:{userId}: lời mời được chấp nhận / trạng thái bạn bè đổi. */
+  FRIEND_UPDATED: 'friend:updated',
 } as const
 
 export type SocketEventKey = keyof typeof SOCKET_EVENTS

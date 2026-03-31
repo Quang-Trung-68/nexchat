@@ -12,8 +12,8 @@ import { usePendingImageUploadsStore } from '../store/pendingImageUploads.store'
 import { applyReactionPatch } from '../reactions/applyReactionPatch'
 import { useTitleBarStore } from '@/features/app/titleBar.store'
 
-/** Chấm đỏ nhỏ: emoji + text presentation (nhỏ hơn so với emoji đầy). */
-const TITLE_DOT = '\u{1F534}\uFE0E'
+/** Dấu chấm báo tin trong tiêu đề tab (bullet nhỏ, gọn hơn emoji đỏ). */
+const TITLE_DOT = '\u2022'
 
 type ChatNewPayload = {
   conversationId: string

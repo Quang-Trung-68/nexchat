@@ -1,3 +1,4 @@
+import { Link, useLocation } from 'react-router-dom'
 import {
   MessageCircle,
   Phone,
@@ -12,22 +13,24 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 
-const navItems = [
-  { icon: MessageCircle, label: 'Tin nhắn', active: true },
-  { icon: Phone, label: 'Cuộc gọi', active: false },
-  { icon: Users, label: 'Danh bạ', active: false },
-  { icon: Cloud, label: 'Cloud', active: false },
-  { icon: Briefcase, label: 'Công việc', active: false },
-] as const
-
 type ChatNavRailProps = {
   displayName?: string | null
   avatarUrl?: string | null
   onLogout?: () => void
+  /** Chấm đỏ trên icon Danh bạ khi còn lời mời PENDING (kết bạn / sau này nhóm). */
+  contactsPendingBadge?: boolean
 }
 
-export function ChatNavRail({ displayName, avatarUrl, onLogout }: ChatNavRailProps) {
+export function ChatNavRail({
+  displayName,
+  avatarUrl,
+  onLogout,
+  contactsPendingBadge = false,
+}: ChatNavRailProps) {
+  const location = useLocation()
   const initial = (displayName ?? '?').slice(0, 1).toUpperCase()
+  const chatActive = location.pathname.startsWith('/chat')
+  const contactsActive = location.pathname.startsWith('/contacts')
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -50,28 +53,107 @@ export function ChatNavRail({ displayName, avatarUrl, onLogout }: ChatNavRailPro
         </div>
 
         <div className="mt-2 flex flex-1 flex-col gap-1">
-          {navItems.map(({ icon: Icon, label, active }) => (
-            <Tooltip key={label}>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  disabled={!active}
-                  className={cn(
-                    'text-white hover:bg-white/15 hover:text-white',
-                    active && 'bg-white/20'
-                  )}
-                  aria-label={label}
-                >
-                  <Icon className="h-5 w-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="text-xs">
-                {active ? label : `${label} (sắp có)`}
-              </TooltipContent>
-            </Tooltip>
-          ))}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'text-white hover:bg-white/15 hover:text-white',
+                  chatActive && 'bg-white/20'
+                )}
+                asChild
+              >
+                <Link to="/chat" aria-label="Tin nhắn">
+                  <MessageCircle className="h-5 w-5" />
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="text-xs">
+              Tin nhắn
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                disabled
+                className="text-white hover:bg-white/15 hover:text-white"
+                aria-label="Cuộc gọi (sắp có)"
+              >
+                <Phone className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="text-xs">
+              Cuộc gọi (sắp có)
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'relative text-white hover:bg-white/15 hover:text-white',
+                  contactsActive && 'bg-white/20'
+                )}
+                asChild
+              >
+                <Link to="/contacts/friends" className="relative" aria-label="Danh bạ">
+                  {contactsPendingBadge ? (
+                    <span
+                      className="pointer-events-none absolute -left-0.5 -top-0.5 z-10 h-2 w-2 rounded-full bg-red-500 ring-2 ring-[#005ae0]"
+                      aria-hidden
+                    />
+                  ) : null}
+                  <Users className="h-5 w-5" />
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="text-xs">
+              Danh bạ
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                disabled
+                className="text-white hover:bg-white/15 hover:text-white"
+                aria-label="Cloud (sắp có)"
+              >
+                <Cloud className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="text-xs">
+              Cloud (sắp có)
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                disabled
+                className="text-white hover:bg-white/15 hover:text-white"
+                aria-label="Công việc (sắp có)"
+              >
+                <Briefcase className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="text-xs">
+              Công việc (sắp có)
+            </TooltipContent>
+          </Tooltip>
         </div>
 
         <div className="mt-auto flex flex-col gap-1">

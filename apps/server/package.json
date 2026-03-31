@@ -13,7 +13,9 @@
     "start:worker": "node dist/worker.js",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "push:selftest": "tsx scripts/push-selftest.ts",
+    "push:reset-dev": "tsx scripts/reset-push-dev.ts"
   },
   "dependencies": {
     "@chat-app/shared-constants": "*",

@@ -24,6 +24,8 @@ export interface RegisterDto {
   displayName: string
   password: string
   confirmPassword: string
+  /** Chỉ số, 8–15 ký tự — tìm thêm bạn khớp chính xác. */
+  phone?: string
 }
 
 export interface LoginDto {

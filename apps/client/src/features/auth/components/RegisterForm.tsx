@@ -4,7 +4,6 @@ import { z } from 'zod'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
 import { useRegister } from '../queries/auth.queries'
-import type { RegisterPayload } from '../types/auth.types'
 
 const registerSchema = z
   .object({
@@ -15,6 +14,11 @@ const registerSchema = z
       .max(20)
       .regex(/^[a-z0-9_]+$/, 'Username chỉ được chứa chữ thường, số, gạch dưới'),
     displayName: z.string().min(1).max(50),
+    phone: z
+      .string()
+      .trim()
+      .refine((v) => v === '' || /^[0-9]{8,15}$/.test(v), 'Số điện thoại chỉ gồm 8–15 chữ số')
+      .transform((v) => (v === '' ? undefined : v)),
     password: z
       .string()
       .min(8)
@@ -25,6 +29,9 @@ const registerSchema = z
     message: 'Mật khẩu không khớp',
     path: ['confirmPassword'],
   })
+
+type RegisterFormInput = z.input<typeof registerSchema>
+type RegisterFormOutput = z.infer<typeof registerSchema>
 
 function getErrorMessage(err: unknown): string {
   if (axios.isAxiosError(err) && err.response?.data && typeof err.response.data === 'object') {
@@ -40,18 +47,19 @@ export function RegisterForm() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<RegisterPayload>({
+  } = useForm<RegisterFormInput, unknown, RegisterFormOutput>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       email: '',
       username: '',
       displayName: '',
+      phone: '',
       password: '',
       confirmPassword: '',
     },
   })
 
-  const onSubmit = (data: RegisterPayload) => {
+  const onSubmit = (data: RegisterFormOutput) => {
     registerMutation.mutate(data)
   }
 
@@ -110,6 +118,21 @@ export function RegisterForm() {
         {errors.displayName ? (
           <p className="text-sm text-red-600">{errors.displayName.message}</p>
         ) : null}
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label htmlFor="phone" className="text-sm font-medium text-neutral-700">
+          Số điện thoại <span className="font-normal text-neutral-500">(tùy chọn)</span>
+        </label>
+        <input
+          id="phone"
+          inputMode="numeric"
+          autoComplete="tel"
+          className="rounded-lg border border-neutral-300 px-3 py-2 text-neutral-900 outline-none focus:ring-2 focus:ring-indigo-500"
+          placeholder="Chỉ số, 8–15 ký tự — dùng khi thêm bạn"
+          {...register('phone')}
+        />
+        {errors.phone ? <p className="text-sm text-red-600">{errors.phone.message}</p> : null}
       </div>
 
       <div className="flex flex-col gap-1">

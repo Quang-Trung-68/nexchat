@@ -1,19 +1,18 @@
 import { useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Search, UserPlus, X } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { Link, useParams } from 'react-router-dom'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import type { RoomListItem } from '@/features/rooms/types/room.types'
 import { getRoomTitle } from '../utils/roomTitle'
 import { formatSidebarTime } from '../utils/format'
-import { CreateGroupDialog } from './CreateGroupDialog'
+import {
+  ChatGlobalSearchToolbar,
+  type SearchScopeTab,
+} from './ChatGlobalSearchToolbar'
 import { useMinuteTicker } from '@/hooks/useMinuteTicker'
 import { userDisplayName } from '@/lib/userDisplay'
 import { useTypingPresenceStore } from '@/features/sockets/typingPresence.store'
 import { useMessageSearch } from '@/features/messages/hooks/useMessageSearch'
-import { MessageSearchResultsDropdown } from './MessageSearchResultsDropdown'
 import { SEARCH_MESSAGES } from '@chat-app/shared-constants'
 
 type ChatRoomListProps = {
@@ -21,11 +20,8 @@ type ChatRoomListProps = {
   currentUserId: string | undefined
 }
 
-type SearchScopeTab = 'all' | 'contacts' | 'messages' | 'files'
-
 export function ChatRoomList({ rooms, currentUserId }: ChatRoomListProps) {
   const { conversationId } = useParams()
-  const navigate = useNavigate()
   useMinuteTicker()
   const typingByConversation = useTypingPresenceStore((s) => s.typingByConversation)
   const [q, setQ] = useState('')
@@ -41,11 +37,6 @@ export function ChatRoomList({ rooms, currentUserId }: ChatRoomListProps) {
     rawQuery: q,
     enabled: searchFocused && scopeAllowsMessageSearch,
   })
-
-  const showSearchDropdown =
-    searchFocused &&
-    scopeAllowsMessageSearch &&
-    q.trim().length >= SEARCH_MESSAGES.MIN_QUERY_LENGTH
 
   const filtered = useMemo(() => {
     let list = rooms ?? []
@@ -75,13 +66,6 @@ export function ChatRoomList({ rooms, currentUserId }: ChatRoomListProps) {
     return list
   }, [rooms, tab, q, currentUserId, typingByConversation])
 
-  const searchTabs: { id: SearchScopeTab; label: string }[] = [
-    { id: 'all', label: 'Tất cả' },
-    { id: 'contacts', label: 'Liên hệ' },
-    { id: 'messages', label: 'Tin nhắn' },
-    { id: 'files', label: 'File' },
-  ]
-
   const closeSearchUi = () => {
     setQ('')
     setSearchFocused(false)
@@ -89,107 +73,16 @@ export function ChatRoomList({ rooms, currentUserId }: ChatRoomListProps) {
 
   return (
     <div className="flex h-full min-h-0 w-full max-w-[300px] shrink-0 flex-col border-r border-border/80 bg-white">
-      <div className="relative z-30 shrink-0 border-b border-border/60">
-        <div className="flex items-center gap-1.5 p-2">
-          <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => window.setTimeout(() => setSearchFocused(false), 180)}
-              placeholder="Tìm kiếm"
-              className="h-9 rounded-full border-border/80 bg-[#f4f5f7] pl-9 pr-9 text-sm shadow-none"
-              aria-label="Tìm kiếm toàn cục"
-            />
-            {q ? (
-              <button
-                type="button"
-                className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-black/5 hover:text-foreground"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => setQ('')}
-                aria-label="Xóa ô tìm"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            ) : null}
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-9 shrink-0 px-2 text-xs text-muted-foreground hover:bg-[#e5f0ff] hover:text-foreground"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={closeSearchUi}
-          >
-            Đóng
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 shrink-0 text-muted-foreground hover:bg-[#e5f0ff] hover:text-foreground"
-            disabled
-            title="Thêm bạn (sắp có)"
-            aria-label="Thêm bạn (sắp có)"
-          >
-            <UserPlus className="h-5 w-5" />
-          </Button>
-          <CreateGroupDialog />
-        </div>
-
-        <div className="flex border-b border-border/50 px-1">
-          {searchTabs.map((st) => (
-            <button
-              key={st.id}
-              type="button"
-              onClick={() => setSearchScopeTab(st.id)}
-              className={cn(
-                'relative flex-1 py-2 text-center text-xs font-medium transition-colors sm:text-sm',
-                searchScopeTab === st.id
-                  ? 'text-[#0068ff]'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {st.label}
-              {searchScopeTab === st.id ? (
-                <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-[#0068ff]" />
-              ) : null}
-            </button>
-          ))}
-        </div>
-
-        {showSearchDropdown ? (
-          <MessageSearchResultsDropdown
-            query={messageSearch.debouncedQuery}
-            items={messageSearch.items}
-            isLoading={messageSearch.isLoading}
-            isError={messageSearch.isError}
-            showConversationLabel
-            onPick={(hit) => {
-              closeSearchUi()
-              navigate(`/chat/${hit.conversationId}`, {
-                state: { focusMessageId: hit.messageId },
-              })
-            }}
-            className="shadow-md"
-          />
-        ) : null}
-
-        {searchFocused && messageSearch.showHint && scopeAllowsMessageSearch ? (
-          <p className="px-3 py-1.5 text-[11px] text-muted-foreground">
-            Nhập ít nhất {SEARCH_MESSAGES.MIN_QUERY_LENGTH} ký tự
-          </p>
-        ) : null}
-
-        {searchFocused &&
-        q.trim().length >= SEARCH_MESSAGES.MIN_QUERY_LENGTH &&
-        !scopeAllowsMessageSearch ? (
-          <p className="px-3 py-3 text-center text-xs text-muted-foreground">
-            Tìm theo Liên hệ / File — sắp có
-          </p>
-        ) : null}
-      </div>
+      <ChatGlobalSearchToolbar
+        q={q}
+        onQChange={setQ}
+        searchFocused={searchFocused}
+        onSearchFocusChange={setSearchFocused}
+        searchScopeTab={searchScopeTab}
+        onSearchScopeTabChange={setSearchScopeTab}
+        messageSearch={messageSearch}
+        onCloseSearchUi={closeSearchUi}
+      />
 
       <div className="flex shrink-0 border-b border-border/60 px-2">
         <button
@@ -305,7 +198,7 @@ export function ChatRoomList({ rooms, currentUserId }: ChatRoomListProps) {
                         >
                           {preview}
                         </p>
-                        {room.unreadCount > 0 ? (
+                        {room.unreadCount > 0 && !active ? (
                           <span className="flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white">
                             {room.unreadCount > 99 ? '99+' : room.unreadCount}
                           </span>

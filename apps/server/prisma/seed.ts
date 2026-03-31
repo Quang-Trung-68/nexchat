@@ -1,4 +1,4 @@
-import { PrismaClient, ConversationType, ParticipantRole, MessageType, FriendshipStatus } from '@prisma/client'
+import { PrismaClient, ConversationType, ParticipantRole, MessageType } from '@prisma/client'
 import bcrypt from 'bcrypt'
 
 const prisma = new PrismaClient()
@@ -34,6 +34,7 @@ async function main() {
       data: {
         email: 'alice@example.com',
         username: 'alice',
+        phone: '0901000001',
         displayName: 'Alice Nguyen',
         avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=alice',
         bio: 'Frontend developer & coffee lover ☕',
@@ -46,6 +47,7 @@ async function main() {
       data: {
         email: 'bob@example.com',
         username: 'bob',
+        phone: '0901000002',
         displayName: 'Bob Tran',
         avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=bob',
         bio: 'Backend engineer, Node.js enthusiast',
@@ -81,136 +83,35 @@ async function main() {
   ])
   console.log(`[Seed] Created 4 users: ${alice.username}, ${bob.username}, ${carol.username}, ${dave.username}`)
 
-  // ─── 4. Create friendships ────────────────────────────────────────────────
-  console.log('[Seed] Creating friendships...')
-  const [aliceBobFriendship, aliceCarolFriendship] = await Promise.all([
-    // alice ↔ bob: ACCEPTED
-    prisma.friendship.create({
-      data: {
-        requesterId: alice.id,
-        addresseeId: bob.id,
-        status: FriendshipStatus.ACCEPTED,
-      },
-    }),
-    // alice ↔ carol: ACCEPTED
-    prisma.friendship.create({
-      data: {
-        requesterId: alice.id,
-        addresseeId: carol.id,
-        status: FriendshipStatus.ACCEPTED,
-      },
-    }),
-    // bob ↔ dave: PENDING (dave hasn't accepted yet)
-    prisma.friendship.create({
-      data: {
-        requesterId: bob.id,
-        addresseeId: dave.id,
-        status: FriendshipStatus.PENDING,
-      },
-    }),
-  ])
-  console.log('[Seed] Created 3 friendships')
+  // ─── 4. Friendships: none — test kết bạn / DM từ UI (không seed sẵn) ───────
+  console.log('[Seed] No friendships seeded (clean friend-request / DM tests).')
 
   // ─── 5. Create conversations ──────────────────────────────────────────────
   console.log('[Seed] Creating conversations...')
-  const [dmConversation, groupConversation] = await Promise.all([
-    // DM between alice and bob
-    prisma.conversation.create({
-      data: {
-        type: ConversationType.DM,
-        name: null,
-        avatarUrl: null,
-      },
-    }),
-    // Group "Dev Team 🚀" with all 4 users
-    prisma.conversation.create({
-      data: {
-        type: ConversationType.GROUP,
-        name: 'Dev Team 🚀',
-        avatarUrl: 'https://api.dicebear.com/7.x/shapes/svg?seed=devteam',
-        description: 'Our awesome dev team workspace for collaboration and daily standups',
-      },
-    }),
-  ])
-  console.log(`[Seed] Created 2 conversations: DM (${dmConversation.id}), Group (${groupConversation.id})`)
+  const groupConversation = await prisma.conversation.create({
+    data: {
+      type: ConversationType.GROUP,
+      name: 'Dev Team 🚀',
+      avatarUrl: 'https://api.dicebear.com/7.x/shapes/svg?seed=devteam',
+      description: 'Our awesome dev team workspace for collaboration and daily standups',
+    },
+  })
+  console.log(`[Seed] Created 1 group conversation (${groupConversation.id})`)
 
   // ─── 6. Create participants ───────────────────────────────────────────────
   console.log('[Seed] Creating participants...')
   await prisma.conversationParticipant.createMany({
     data: [
-      // DM participants
-      { conversationId: dmConversation.id, userId: alice.id, role: ParticipantRole.MEMBER },
-      { conversationId: dmConversation.id, userId: bob.id, role: ParticipantRole.MEMBER },
-      // Group participants: alice is OWNER, rest are MEMBER
       { conversationId: groupConversation.id, userId: alice.id, role: ParticipantRole.OWNER },
       { conversationId: groupConversation.id, userId: bob.id, role: ParticipantRole.MEMBER },
       { conversationId: groupConversation.id, userId: carol.id, role: ParticipantRole.MEMBER },
       { conversationId: groupConversation.id, userId: dave.id, role: ParticipantRole.MEMBER },
     ],
   })
-  console.log('[Seed] Created 6 conversation participants')
+  console.log('[Seed] Created 4 conversation participants (group only)')
 
   // ─── 7. Create messages ───────────────────────────────────────────────────
   console.log('[Seed] Creating messages...')
-
-  // DM messages (6 messages between alice and bob)
-  const dmMessages = await Promise.all([
-    prisma.message.create({
-      data: {
-        conversationId: dmConversation.id,
-        senderId: alice.id,
-        type: MessageType.TEXT,
-        content: 'Hey Bob! Have you checked the new Prisma v6 features? 🔥',
-        createdAt: new Date(Date.now() - 6 * 60 * 1000),
-      },
-    }),
-    prisma.message.create({
-      data: {
-        conversationId: dmConversation.id,
-        senderId: bob.id,
-        type: MessageType.TEXT,
-        content: 'Not yet! What\'s new in there?',
-        createdAt: new Date(Date.now() - 5 * 60 * 1000),
-      },
-    }),
-    prisma.message.create({
-      data: {
-        conversationId: dmConversation.id,
-        senderId: alice.id,
-        type: MessageType.TEXT,
-        content: 'They have omit API and typed SQL now. It\'s going to be a game changer!',
-        createdAt: new Date(Date.now() - 4 * 60 * 1000),
-      },
-    }),
-    prisma.message.create({
-      data: {
-        conversationId: dmConversation.id,
-        senderId: bob.id,
-        type: MessageType.TEXT,
-        content: 'Wow that sounds awesome! Might be worth upgrading our project.',
-        createdAt: new Date(Date.now() - 3 * 60 * 1000),
-      },
-    }),
-    prisma.message.create({
-      data: {
-        conversationId: dmConversation.id,
-        senderId: alice.id,
-        type: MessageType.TEXT,
-        content: 'Definitely! I\'ll create a branch and test it out today 🚀',
-        createdAt: new Date(Date.now() - 2 * 60 * 1000),
-      },
-    }),
-    prisma.message.create({
-      data: {
-        conversationId: dmConversation.id,
-        senderId: bob.id,
-        type: MessageType.TEXT,
-        content: 'Perfect. Let me know how it goes. I\'ll review your PR 👌',
-        createdAt: new Date(Date.now() - 1 * 60 * 1000),
-      },
-    }),
-  ])
-  console.log(`[Seed] Created ${dmMessages.length} DM messages`)
 
   // Group messages (8 messages + 1 image + 2 reply messages)
   const groupMsg1 = await prisma.message.create({
@@ -327,14 +228,6 @@ async function main() {
   console.log('[Seed] Creating message reads...')
   await prisma.messageRead.createMany({
     data: [
-      // Alice read all DM messages from bob
-      { messageId: dmMessages[1].id, userId: alice.id },
-      { messageId: dmMessages[3].id, userId: alice.id },
-      { messageId: dmMessages[5].id, userId: alice.id },
-      // Bob read alice's DM messages
-      { messageId: dmMessages[0].id, userId: bob.id },
-      { messageId: dmMessages[2].id, userId: bob.id },
-      { messageId: dmMessages[4].id, userId: bob.id },
       // Group: everyone read the first few messages
       { messageId: groupMsg1.id, userId: bob.id },
       { messageId: groupMsg1.id, userId: carol.id },
@@ -374,27 +267,11 @@ async function main() {
     data: [
       {
         userId: alice.id,
-        type: 'FRIEND_ACCEPTED',
-        title: 'Friend request accepted',
-        body: 'Bob Tran accepted your friend request',
-        isRead: true,
-        data: { friendId: bob.id, username: 'bob' },
-      },
-      {
-        userId: alice.id,
         type: 'NEW_MESSAGE',
-        title: 'New message from Bob',
-        body: 'Bob Tran: Perfect. Let me know how it goes...',
+        title: 'Tin nhắn trong nhóm',
+        body: 'Có hoạt động mới trong Dev Team 🚀',
         isRead: false,
-        data: { conversationId: dmConversation.id, senderId: bob.id },
-      },
-      {
-        userId: dave.id,
-        type: 'FRIEND_REQUEST',
-        title: 'New friend request',
-        body: 'Bob Tran sent you a friend request',
-        isRead: false,
-        data: { requesterId: bob.id, username: 'bob' },
+        data: { conversationId: groupConversation.id },
       },
     ],
   })
@@ -404,10 +281,10 @@ async function main() {
   console.log('\n[Seed] ✅ Database seeded successfully!')
   console.log('[Seed] Summary:')
   console.log('  - 4 users (alice, bob, carol, dave) — password: Password123!')
-  console.log('  - 3 friendships (alice↔bob: ACCEPTED, alice↔carol: ACCEPTED, bob↔dave: PENDING)')
-  console.log('  - 2 conversations (1 DM alice↔bob, 1 Group "Dev Team 🚀")')
-  console.log('  - 16 messages (6 DM + 10 group, including 1 image, 2 replies)')
-  console.log('  - 16 message reads, 8 reactions, 3 notifications')
+  console.log('  - 0 friendships (test kết bạn / DM từ giao diện)')
+  console.log('  - 1 conversation (Group "Dev Team 🚀" — 4 thành viên)')
+  console.log('  - 10 group messages (1 image, 2 replies)')
+  console.log('  - message reads, reactions, 1 notification')
 }
 
 main()

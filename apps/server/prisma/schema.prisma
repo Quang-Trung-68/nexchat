@@ -62,6 +62,8 @@ model User {
   id          String    @id @default(cuid())
   email       String    @unique
   username    String    @unique
+  // Optional phone — exact match only (add friend search).
+  phone       String?   @unique @map("phone")
   displayName String    @map("display_name")
   avatarUrl   String?   @map("avatar_url")
   bio         String?
@@ -87,6 +89,7 @@ model User {
 
   @@index([email])
   @@index([username])
+  @@index([phone])
   @@index([deletedAt])
   @@map("users")
 }

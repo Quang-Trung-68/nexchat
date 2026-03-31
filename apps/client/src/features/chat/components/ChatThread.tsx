@@ -562,15 +562,7 @@ export function ChatThread({
           ) : null}
 
           {!infinite.isLoading && merged.length > 0 ? (
-            <div
-              ref={messagesContentRef}
-              key={conversationId}
-              className={cn(
-                initialRevealDone &&
-                skelPhase === 'hidden' &&
-                'motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-450 motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)]'
-              )}
-            >
+            <div ref={messagesContentRef} key={conversationId}>
               {groups.map((g) => (
                 <div key={g.dayKey} className="mb-4">
                   <div className="mb-3 flex justify-center">
@@ -813,11 +805,7 @@ export function ChatThread({
                 {[1, 2, 3, 4, 5, 6].map((i) => (
                   <div
                     key={i}
-                    style={{ animationDelay: `${(i - 1) * 45}ms` }}
-                    className={cn(
-                      'flex gap-2 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-500',
-                      i % 2 === 0 ? 'flex-row-reverse' : ''
-                    )}
+                    className={cn('flex gap-2', i % 2 === 0 ? 'flex-row-reverse' : '')}
                   >
                     <Skeleton className="h-8 w-8 shrink-0 rounded-full opacity-90" />
                     <Skeleton className="h-16 max-w-[70%] flex-1 rounded-2xl opacity-90" />
