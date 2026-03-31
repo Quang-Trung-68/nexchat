@@ -16,6 +16,7 @@ import { formatDaySeparator, formatMessageTime } from '../utils/format'
 import { ChatComposer } from './ChatComposer'
 import { ImagePreviewLightbox } from './ImagePreviewLightbox'
 import { MessageImageGrid } from './MessageImageGrid'
+import { MessageReactionHoverLayer } from './MessageReactions'
 import { cn } from '@/lib/utils'
 import { EMPTY_STRING_ARRAY } from '@/lib/zustandEmpty'
 import { displayNameForMessageSender, userDisplayName } from '@/lib/userDisplay'
@@ -84,6 +85,10 @@ export function ChatThread({
     urls: string[]
     startIndex: number
   } | null>(null)
+  /** Tăng khi chuột rời hết khối tin (bubble + reaction float) — đóng menu vuông reaction. */
+  const [reactionShellLeaveByMessageId, setReactionShellLeaveByMessageId] = useState<
+    Record<string, number>
+  >({})
 
   const title = room ? getRoomTitle(room, currentUserId) : 'Đang tải…'
   const mentionLine = room ? getDmMentionLine(room, currentUserId) : null
@@ -336,103 +341,121 @@ export function ChatThread({
               key={conversationId}
               className={cn(
                 initialRevealDone &&
-                  skelPhase === 'hidden' &&
-                  'motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-450 motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)]'
+                skelPhase === 'hidden' &&
+                'motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-450 motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)]'
               )}
             >
               {groups.map((g) => (
-              <div key={g.dayKey} className="mb-4">
-                <div className="mb-3 flex justify-center">
-                  <span className="rounded-full bg-white/95 px-3 py-1 text-xs text-muted-foreground shadow-sm">
-                    {formatDaySeparator(g.items[0].createdAt)}
-                  </span>
-                </div>
-                <ul className="space-y-3">
-                  {g.items.map((m) => {
-                    const mine = m.sender.id === currentUserId
-                    const senderLabel = displayNameForMessageSender(m.sender, room?.participants)
-                    return (
-                      <li
-                        key={m.id}
-                        className={cn('flex gap-2', mine ? 'flex-row-reverse' : 'flex-row')}
-                      >
-                        {!mine ? (
-                          <Avatar className="mt-0.5 h-8 w-8 shrink-0">
-                            {m.sender.avatarUrl ? (
-                              <AvatarImage src={m.sender.avatarUrl} alt="" />
-                            ) : null}
-                            <AvatarFallback className="text-[10px]">
-                              {senderLabel.slice(0, 1).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                        ) : (
-                          <div className="w-8 shrink-0" />
-                        )}
-                        <div
-                          className={cn(
-                            'max-w-[min(100%,28rem)] rounded-2xl px-3 py-2 text-sm shadow-sm',
-                            mine
-                              ? 'bg-primary text-primary-foreground'
-                              : 'border border-border bg-white text-foreground'
-                          )}
+                <div key={g.dayKey} className="mb-4">
+                  <div className="mb-3 flex justify-center">
+                    <span className="rounded-full bg-white/95 px-3 py-1 text-xs text-muted-foreground shadow-sm">
+                      {formatDaySeparator(g.items[0].createdAt)}
+                    </span>
+                  </div>
+                  <ul className="space-y-3">
+                    {g.items.map((m) => {
+                      const mine = m.sender.id === currentUserId
+                      const senderLabel = displayNameForMessageSender(m.sender, room?.participants)
+                      return (
+                        <li
+                          key={m.id}
+                          className={cn('flex gap-2', mine ? 'flex-row-reverse' : 'flex-row')}
                         >
                           {!mine ? (
-                            <p className="mb-1 text-xs text-muted-foreground">{senderLabel}</p>
-                          ) : null}
-                          {m.content ? (
-                            <p className="whitespace-pre-wrap wrap-break-word">{m.content}</p>
-                          ) : null}
-                          {(() => {
-                            const pending = pendingByMessageId[m.id]
-                            const serverUrls = sortedAttachmentUrls(m)
-                            const legacySingle =
-                              serverUrls.length === 0 &&
-                              m.fileUrl &&
-                              m.fileType === 'IMAGE'
-                                ? [m.fileUrl]
-                                : []
-                            const displayUrls =
-                              serverUrls.length > 0
-                                ? serverUrls
-                                : legacySingle.length > 0
-                                  ? legacySingle
-                                  : (pending?.previewUrls ?? [])
-                            const imageLoading =
-                              Boolean(pending?.previewUrls?.length) &&
-                              serverUrls.length === 0 &&
-                              legacySingle.length === 0
-                            if (displayUrls.length === 0 && !imageLoading) return null
-                            return (
-                              <div className={cn(m.content ? 'mt-2' : '')}>
-                                <MessageImageGrid
-                                  urls={displayUrls}
-                                  totalCount={displayUrls.length}
-                                  loading={imageLoading}
-                                  onPhotoClick={(idx) =>
-                                    setLightbox({
-                                      urls: displayUrls,
-                                      startIndex: Math.min(idx, displayUrls.length - 1),
-                                    })
-                                  }
-                                />
-                              </div>
-                            )
-                          })()}
-                          <p
-                            className={cn(
-                              'mt-1 text-[10px]',
-                              mine ? 'text-primary-foreground/80' : 'text-muted-foreground'
-                            )}
+                            <Avatar className="mt-0.5 h-8 w-8 shrink-0">
+                              {m.sender.avatarUrl ? (
+                                <AvatarImage src={m.sender.avatarUrl} alt="" />
+                              ) : null}
+                              <AvatarFallback className="text-[10px]">
+                                {senderLabel.slice(0, 1).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                          ) : (
+                            <div className="w-8 shrink-0" />
+                          )}
+                          <div
+                            className="group/msg relative inline-block max-w-[min(100%,28rem)] pb-4"
+                            onMouseLeave={(e) => {
+                              const next = e.relatedTarget as Node | null
+                              if (next && e.currentTarget.contains(next)) return
+                              setReactionShellLeaveByMessageId((prev) => ({
+                                ...prev,
+                                [m.id]: (prev[m.id] ?? 0) + 1,
+                              }))
+                            }}
                           >
-                            {formatMessageTime(m.createdAt)}
-                          </p>
-                        </div>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </div>
-            ))}
+                            <div
+                              className={cn(
+                                'rounded-2xl px-3 py-2 text-sm shadow-sm',
+                                mine
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'border border-border bg-white text-foreground'
+                              )}
+                            >
+                              {!mine ? (
+                                <p className="mb-1 text-xs text-muted-foreground">{senderLabel}</p>
+                              ) : null}
+                              {m.content ? (
+                                <p className="whitespace-pre-wrap wrap-break-word">{m.content}</p>
+                              ) : null}
+                              {(() => {
+                                const pending = pendingByMessageId[m.id]
+                                const serverUrls = sortedAttachmentUrls(m)
+                                const legacySingle =
+                                  serverUrls.length === 0 &&
+                                    m.fileUrl &&
+                                    m.fileType === 'IMAGE'
+                                    ? [m.fileUrl]
+                                    : []
+                                const displayUrls =
+                                  serverUrls.length > 0
+                                    ? serverUrls
+                                    : legacySingle.length > 0
+                                      ? legacySingle
+                                      : (pending?.previewUrls ?? [])
+                                const imageLoading =
+                                  Boolean(pending?.previewUrls?.length) &&
+                                  serverUrls.length === 0 &&
+                                  legacySingle.length === 0
+                                if (displayUrls.length === 0 && !imageLoading) return null
+                                return (
+                                  <div className={cn(m.content ? 'mt-2' : '')}>
+                                    <MessageImageGrid
+                                      urls={displayUrls}
+                                      totalCount={displayUrls.length}
+                                      loading={imageLoading}
+                                      onPhotoClick={(idx) =>
+                                        setLightbox({
+                                          urls: displayUrls,
+                                          startIndex: Math.min(idx, displayUrls.length - 1),
+                                        })
+                                      }
+                                    />
+                                  </div>
+                                )
+                              })()}
+                              <p
+                                className={cn(
+                                  'mt-1 text-[10px]',
+                                  mine ? 'text-primary-foreground/80' : 'text-muted-foreground'
+                                )}
+                              >
+                                {formatMessageTime(m.createdAt)}
+                              </p>
+                            </div>
+                            <MessageReactionHoverLayer
+                              message={m}
+                              conversationId={conversationId}
+                              mine={mine}
+                              shellLeaveSignal={reactionShellLeaveByMessageId[m.id] ?? 0}
+                            />
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              ))}
             </div>
           ) : null}
 

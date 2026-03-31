@@ -127,9 +127,14 @@ Code: `apps/server/src/config/upload.config.ts`, `cloudinary.client.ts`, `featur
 ---
 
 
-**Bước 12 — Emoji reactions**
+**Bước 12 — Emoji reactions** ✅
 
-Bảng `Reaction` gồm `messageId`, `userId`, `emoji`. Endpoint `POST /messages/:id/reactions` dùng `upsert` — nếu cùng emoji thì delete (toggle off), khác emoji thì update. Server broadcast `reaction:update` kèm toàn bộ reaction summary của message đó. Frontend group reactions theo emoji, hiển thị count và highlight nếu user đã react.
+- **Schema (Prisma):** bảng **`reactions`** — `messageId`, `userId`, `emoji`. **`@@unique([messageId, userId])`** — một user một emoji / tin; migration `20260330180000_reaction_one_per_user_per_message`.
+- **API:** **`POST /api/messages/:messageId/reactions`** — body `{ emoji }`; tập **`ALLOWED_REACTION_EMOJIS`** trong **`packages/shared-constants/reaction-emojis.ts`**. Toggle: cùng emoji → xóa; khác → cập nhật.
+- **Realtime:** **`chat:reaction:updated`** (`SOCKET_EVENTS.CHAT_REACTION_UPDATED`) — **`summary`** + **`reactions: { userId, emoji }[]`**; client tính **`myReactionEmoji`** theo user đăng nhập.
+- **Client:** chip dưới bubble + nút **+** (popover); **`applyReactionPatch`** (TanStack infinite + Zustand); **`useChatRealtime`** lắng nghe reaction.
+
+Code: server `messageReactions.routes.ts`, `messageReactions.controller.ts`, `messages.service` (`setReaction`), `messages.repository`, `chatMessageBroadcast` (`emitReactionUpdated`); client `MessageReactions.tsx`, `reactions/applyReactionPatch.ts`, `useChatRealtime`, `messages.api` (`postMessageReaction`).
 
 ---
 

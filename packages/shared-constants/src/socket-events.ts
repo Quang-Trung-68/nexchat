@@ -6,6 +6,8 @@ export const SOCKET_EVENTS = {
   CHAT_NEW: 'chat:new',
   /** Server → room: tin đã có (cập nhật attachments sau upload Cloudinary). */
   CHAT_MESSAGE_UPDATED: 'chat:message:updated',
+  /** Server → room: cập nhật reaction (summary + danh sách userId + emoji). */
+  CHAT_REACTION_UPDATED: 'chat:reaction:updated',
   CHAT_ERROR: 'chat:error',
   TYPING_START: 'typing:start',
   TYPING_STOP: 'typing:stop',

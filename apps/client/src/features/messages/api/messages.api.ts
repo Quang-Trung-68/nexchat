@@ -1,6 +1,7 @@
 import { api } from '@/services/api'
 import { normalizeMessageSender, type MessageSenderPayload } from '@/lib/messageSender'
-import type { MessageItemDto } from '../types/message.types'
+import { normalizeReactionEmoji } from '@chat-app/shared-constants'
+import type { MessageItemDto, ReactionSummaryItem } from '../types/message.types'
 
 export type CreateMessagePayload = {
   content?: string
@@ -43,9 +44,30 @@ export function normalizeMessagePayload(m: MessageItemDto): MessageItemDto {
   return {
     ...m,
     attachments: Array.isArray(m.attachments) ? m.attachments : [],
+    reactionSummary: Array.isArray(m.reactionSummary) ? m.reactionSummary : [],
+    myReactionEmoji: m.myReactionEmoji ?? null,
     createdAt: typeof m.createdAt === 'string' ? m.createdAt : new Date(m.createdAt).toISOString(),
     sender: normalizeMessageSender(m.sender as MessageSenderPayload),
   }
+}
+
+export async function postMessageReaction(
+  messageId: string,
+  emoji: string
+): Promise<{
+  messageId: string
+  reactionSummary: ReactionSummaryItem[]
+  myReactionEmoji: string | null
+}> {
+  const { data } = await api.post<{
+    success: boolean
+    data: {
+      messageId: string
+      reactionSummary: ReactionSummaryItem[]
+      myReactionEmoji: string | null
+    }
+  }>(`/messages/${messageId}/reactions`, { emoji: normalizeReactionEmoji(emoji) })
+  return data.data
 }
 
 export async function uploadMessageImages(messageId: string, files: File[]): Promise<MessageItemDto> {

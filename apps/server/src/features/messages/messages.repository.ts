@@ -14,6 +14,12 @@ const attachmentSelect = {
   sortOrder: true,
 } as const
 
+const reactionSelect = {
+  userId: true,
+  emoji: true,
+  createdAt: true,
+} as const
+
 const messageListSelect = {
   id: true,
   content: true,
@@ -25,6 +31,9 @@ const messageListSelect = {
   attachments: {
     orderBy: { sortOrder: 'asc' as const },
     select: attachmentSelect,
+  },
+  reactions: {
+    select: reactionSelect,
   },
 } as const
 
@@ -142,6 +151,45 @@ export const messagesRepository = {
         url: row.url,
         sortOrder: row.sortOrder,
       })),
+    })
+  },
+
+  findReactionByMessageAndUser(messageId: string, userId: string) {
+    return prisma.reaction.findUnique({
+      where: {
+        messageId_userId: { messageId, userId },
+      },
+      select: { id: true, emoji: true },
+    })
+  },
+
+  createReaction(messageId: string, userId: string, emoji: string) {
+    return prisma.reaction.create({
+      data: { messageId, userId, emoji },
+      select: reactionSelect,
+    })
+  },
+
+  updateReactionEmoji(reactionId: string, emoji: string) {
+    return prisma.reaction.update({
+      where: { id: reactionId },
+      /** Cập nhật thời điểm để xếp “loại reaction mới nhất” trên UI. */
+      data: { emoji, createdAt: new Date() },
+      select: reactionSelect,
+    })
+  },
+
+  deleteReactionById(reactionId: string) {
+    return prisma.reaction.delete({
+      where: { id: reactionId },
+      select: { id: true },
+    })
+  },
+
+  listReactionsForMessage(messageId: string) {
+    return prisma.reaction.findMany({
+      where: { messageId },
+      select: reactionSelect,
     })
   },
 }

@@ -5,6 +5,11 @@ interface RealtimeMessagesState {
   /** Tin nhận qua Socket — gom theo conversation; cùng `id` thì ghi đè (cập nhật attachments). */
   byConversation: Record<string, MessageItemDto[]>
   upsertFromSocket: (conversationId: string, message: MessageItemDto) => void
+  patchMessageReactions: (
+    conversationId: string,
+    messageId: string,
+    patch: Pick<MessageItemDto, 'reactionSummary' | 'myReactionEmoji'>
+  ) => void
   clearConversation: (conversationId: string) => void
   reset: () => void
 }
@@ -25,6 +30,20 @@ export const useRealtimeMessagesStore = create<RealtimeMessagesState>((set) => (
       }
       const next = [...prev]
       next[idx] = message
+      return {
+        byConversation: {
+          ...state.byConversation,
+          [conversationId]: next,
+        },
+      }
+    }),
+  patchMessageReactions: (conversationId, messageId, patch) =>
+    set((state) => {
+      const prev = state.byConversation[conversationId] ?? []
+      const idx = prev.findIndex((m) => m.id === messageId)
+      if (idx === -1) return state
+      const next = [...prev]
+      next[idx] = { ...next[idx], ...patch }
       return {
         byConversation: {
           ...state.byConversation,

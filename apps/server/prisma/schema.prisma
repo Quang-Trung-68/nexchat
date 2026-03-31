@@ -235,7 +235,7 @@ model Reaction {
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([messageId, userId, emoji]) // each user can only react once with each emoji per message
+  @@unique([messageId, userId])
   @@index([messageId])
   @@map("reactions")
 }

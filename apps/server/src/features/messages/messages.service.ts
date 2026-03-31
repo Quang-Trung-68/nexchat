@@ -8,9 +8,53 @@ import {
   type CreateMessageBody,
   type MessageItemDto,
   type MessagesPageDto,
+  type ReactionSummaryDto,
+  type ReactionUpdatedPayload,
 } from './messages.types'
 
 const IMAGE_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+
+function reactionSummaryOnly(reactions: { userId: string; emoji: string; createdAt: Date }[]): ReactionSummaryDto[] {
+  const byEmoji = new Map<string, { count: number; lastAt: number }>()
+  for (const r of reactions) {
+    const t = r.createdAt.getTime()
+    const cur = byEmoji.get(r.emoji)
+    if (!cur) {
+      byEmoji.set(r.emoji, { count: 1, lastAt: t })
+    } else {
+      cur.count += 1
+      if (t > cur.lastAt) cur.lastAt = t
+    }
+  }
+  return [...byEmoji.entries()]
+    .sort((a, b) => b[1].lastAt - a[1].lastAt || a[0].localeCompare(b[0]))
+    .map(([emoji, { count }]) => ({ emoji, count }))
+}
+
+export function buildReactionSummaryFromRows(
+  reactions: { userId: string; emoji: string; createdAt: Date }[],
+  viewerId: string
+): { reactionSummary: ReactionSummaryDto[]; myReactionEmoji: string | null } {
+  return {
+    reactionSummary: reactionSummaryOnly(reactions),
+    myReactionEmoji: reactions.find((r) => r.userId === viewerId)?.emoji ?? null,
+  }
+}
+
+function buildReactionBroadcastPayload(
+  conversationId: string,
+  messageId: string,
+  reactions: { userId: string; emoji: string; createdAt: Date }[]
+): ReactionUpdatedPayload {
+  const summary = reactionSummaryOnly(reactions)
+  const reactionsPayload = reactions.map(({ userId, emoji }) => ({ userId, emoji }))
+  return {
+    conversationId,
+    messageId,
+    summary,
+    reactions: reactionsPayload,
+  }
+}
 
 function resolveMessageType(body: CreateMessageBody): MT {
   const hasFile = body.fileUrl !== undefined && body.fileUrl.trim().length > 0
@@ -41,8 +85,11 @@ function mapRowToDto(
       avatarUrl: string | null
     }
     attachments: { id: string; url: string; sortOrder: number }[]
-  }
+    reactions: { userId: string; emoji: string; createdAt: Date }[]
+  },
+  viewerId: string
 ): MessageItemDto {
+  const { reactionSummary, myReactionEmoji } = buildReactionSummaryFromRows(m.reactions, viewerId)
   return {
     id: m.id,
     content: m.content,
@@ -53,6 +100,8 @@ function mapRowToDto(
       url: a.url,
       sortOrder: a.sortOrder,
     })),
+    reactionSummary,
+    myReactionEmoji,
     createdAt: m.createdAt,
     parentMessageId: m.parentId,
     sender: {
@@ -104,7 +153,7 @@ export const messagesService = {
     const nextCursor =
       hasMore && slice.length > 0 ? slice[slice.length - 1].id : null
 
-    const messages: MessageItemDto[] = slice.map((m) => mapRowToDto(m))
+    const messages: MessageItemDto[] = slice.map((m) => mapRowToDto(m, userId))
 
     return { messages, nextCursor, hasMore }
   },
@@ -161,7 +210,37 @@ export const messagesService = {
       parentId: body.parentMessageId ?? null,
     })
 
-    return mapRowToDto(created)
+    return mapRowToDto(created, userId)
+  },
+
+  async setReaction(
+    userId: string,
+    messageId: string,
+    emoji: string
+  ): Promise<{ payload: ReactionUpdatedPayload; myReactionEmoji: string | null }> {
+    const meta = await messagesRepository.findMessageMeta(messageId)
+    if (!meta || meta.deletedAt !== null) {
+      throw new AppError('Không tìm thấy tin nhắn', 404, 'NOT_FOUND')
+    }
+    const conversationId = meta.conversationId
+    const participant = await messagesRepository.findParticipant(userId, conversationId)
+    if (!participant) {
+      throw new AppError('Không có quyền trong hội thoại này', 403, 'FORBIDDEN')
+    }
+
+    const existing = await messagesRepository.findReactionByMessageAndUser(messageId, userId)
+    if (!existing) {
+      await messagesRepository.createReaction(messageId, userId, emoji)
+    } else if (existing.emoji === emoji) {
+      await messagesRepository.deleteReactionById(existing.id)
+    } else {
+      await messagesRepository.updateReactionEmoji(existing.id, emoji)
+    }
+
+    const rows = await messagesRepository.listReactionsForMessage(messageId)
+    const payload = buildReactionBroadcastPayload(conversationId, messageId, rows)
+    const myReactionEmoji = rows.find((r) => r.userId === userId)?.emoji ?? null
+    return { payload, myReactionEmoji }
   },
 
   async uploadMessageImages(
@@ -226,6 +305,6 @@ export const messagesService = {
       throw new AppError('Không tải lại được tin sau upload', 500, 'INTERNAL_ERROR')
     }
 
-    return { message: mapRowToDto(full), conversationId }
+    return { message: mapRowToDto(full, userId), conversationId }
   },
 }

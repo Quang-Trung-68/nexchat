@@ -6,8 +6,10 @@ import { roomsKeys } from '@/features/rooms/rooms.keys'
 import { normalizeMessageSender, type MessageSenderPayload } from '@/lib/messageSender'
 import type { MessageItemDto } from '../types/message.types'
 import { normalizeMessagePayload } from '../api/messages.api'
+import { useAuthStore } from '@/features/auth/store/auth.store'
 import { useRealtimeMessagesStore } from '../store/realtimeMessages.store'
 import { usePendingImageUploadsStore } from '../store/pendingImageUploads.store'
+import { applyReactionPatch } from '../reactions/applyReactionPatch'
 
 type ChatNewPayload = {
   conversationId: string
@@ -17,6 +19,13 @@ type ChatNewPayload = {
 type ChatErrorPayload = {
   code: string
   message: string
+}
+
+type ReactionUpdatedPayload = {
+  conversationId: string
+  messageId: string
+  summary: { emoji: string; count: number }[]
+  reactions: { userId: string; emoji: string }[]
 }
 
 function normalizeMessage(m: MessageItemDto): MessageItemDto {
@@ -36,6 +45,7 @@ export function useChatRealtime(socket: Socket | null, connected: boolean) {
   const queryClient = useQueryClient()
   const upsertFromSocket = useRealtimeMessagesStore((s) => s.upsertFromSocket)
   const clearPendingUploads = usePendingImageUploadsStore((s) => s.clear)
+  const userId = useAuthStore((s) => s.user?.id)
 
   useEffect(() => {
     if (!socket || !connected) return
@@ -62,14 +72,27 @@ export function useChatRealtime(socket: Socket | null, connected: boolean) {
       }
     }
 
+    const onReactionUpdated = (payload: ReactionUpdatedPayload) => {
+      if (!payload?.conversationId || !payload?.messageId) return
+      const myEmoji = userId
+        ? payload.reactions.find((r) => r.userId === userId)?.emoji ?? null
+        : null
+      applyReactionPatch(queryClient, payload.conversationId, payload.messageId, {
+        reactionSummary: payload.summary,
+        myReactionEmoji: myEmoji,
+      })
+    }
+
     socket.on(SOCKET_EVENTS.CHAT_NEW, onNew)
     socket.on(SOCKET_EVENTS.CHAT_MESSAGE_UPDATED, onUpdated)
+    socket.on(SOCKET_EVENTS.CHAT_REACTION_UPDATED, onReactionUpdated)
     socket.on(SOCKET_EVENTS.CHAT_ERROR, onError)
 
     return () => {
       socket.off(SOCKET_EVENTS.CHAT_NEW, onNew)
       socket.off(SOCKET_EVENTS.CHAT_MESSAGE_UPDATED, onUpdated)
+      socket.off(SOCKET_EVENTS.CHAT_REACTION_UPDATED, onReactionUpdated)
       socket.off(SOCKET_EVENTS.CHAT_ERROR, onError)
     }
-  }, [socket, connected, upsertFromSocket, clearPendingUploads, queryClient])
+  }, [socket, connected, upsertFromSocket, clearPendingUploads, queryClient, userId])
 }

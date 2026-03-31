@@ -14,6 +14,7 @@ import authRoutes from './modules/auth/auth.routes'
 import roomsRoutes from './features/rooms/rooms.routes'
 import messagesRoutes from './features/messages/messages.routes'
 import messageAttachmentsRoutes from './features/messages/messageAttachments.routes'
+import messageReactionsRoutes from './features/messages/messageReactions.routes'
 import configRoutes from './features/config/config.routes'
 import usersRoutes from './features/users/users.routes'
 import { globalErrorHandler } from './middlewares/globalErrorHandler'
@@ -45,6 +46,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/rooms', roomsRoutes)
 app.use('/api/rooms', messagesRoutes)
 app.use('/api/messages', messageAttachmentsRoutes)
+app.use('/api/messages', messageReactionsRoutes)
 app.use('/api/config', configRoutes)
 app.use('/api/users', usersRoutes)
 

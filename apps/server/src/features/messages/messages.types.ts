@@ -15,6 +15,19 @@ export interface MessageAttachmentDto {
   sortOrder: number
 }
 
+export interface ReactionSummaryDto {
+  emoji: string
+  count: number
+}
+
+/** Payload broadcast `chat:reaction:updated` — client gom summary + tính `myReactionEmoji` từ `reactions`. */
+export interface ReactionUpdatedPayload {
+  conversationId: string
+  messageId: string
+  summary: ReactionSummaryDto[]
+  reactions: { userId: string; emoji: string }[]
+}
+
 export interface MessageItemDto {
   id: string
   content: string | null
@@ -22,6 +35,10 @@ export interface MessageItemDto {
   fileType: ApiFileType | null
   /** Ảnh đính kèm (Cloudinary); có thể rỗng nếu chỉ text hoặc chưa upload xong. */
   attachments: MessageAttachmentDto[]
+  /** Gom theo emoji; viewer-specific qua `myReactionEmoji`. */
+  reactionSummary: ReactionSummaryDto[]
+  /** Reaction hiện tại của user đang xem (một user / một emoji / message). */
+  myReactionEmoji: string | null
   createdAt: Date
   parentMessageId: string | null
   sender: MessageSenderDto

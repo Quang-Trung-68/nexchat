@@ -1,4 +1,8 @@
 import type { Request, Response, NextFunction } from 'express'
+import {
+  ALLOWED_REACTION_EMOJIS_NORMALIZED,
+  normalizeReactionEmoji,
+} from '@chat-app/shared-constants'
 import { z, type ZodSchema } from 'zod'
 import { getUploadConfig } from '@/config/upload.config'
 import { AppError } from '@/shared/errors/AppError'
@@ -73,6 +77,15 @@ export const chatSendPayloadSchema = z
 /** Socket `typing:start` / `typing:stop` — chỉ cần room. */
 export const typingConversationPayloadSchema = z.object({
   conversationId: z.string().cuid(),
+})
+
+export const setReactionBodySchema = z.object({
+  emoji: z
+    .string()
+    .min(1)
+    .max(32)
+    .transform((s) => normalizeReactionEmoji(s))
+    .refine((s) => ALLOWED_REACTION_EMOJIS_NORMALIZED.includes(s), 'Emoji không hợp lệ'),
 })
 
 export const validateBody =

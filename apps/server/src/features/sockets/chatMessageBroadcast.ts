@@ -1,6 +1,6 @@
 import type { Server } from 'socket.io'
 import { SOCKET_EVENTS } from '@chat-app/shared-constants'
-import type { MessageItemDto } from '@/features/messages/messages.types'
+import type { MessageItemDto, ReactionUpdatedPayload } from '@/features/messages/messages.types'
 
 export function emitChatMessageUpdated(
   io: Server,
@@ -11,4 +11,8 @@ export function emitChatMessageUpdated(
     conversationId,
     message,
   })
+}
+
+export function emitReactionUpdated(io: Server, payload: ReactionUpdatedPayload): void {
+  io.to(payload.conversationId).emit(SOCKET_EVENTS.CHAT_REACTION_UPDATED, payload)
 }
