@@ -2,6 +2,7 @@ import './config/env'
 
 import { initRedis } from './config/redis'
 import { startNotifyMessageWorker } from './features/push/notifyMessage.worker'
+import { startMailWorker } from './features/mail/mail.worker'
 
 void (async () => {
   try {
@@ -11,5 +12,6 @@ void (async () => {
     process.exit(1)
   }
   startNotifyMessageWorker()
-  console.log('[Worker] notify-message worker đã chạy')
+  startMailWorker()
+  console.log('[Worker] notify-message + outbound-mail workers đã chạy')
 })()

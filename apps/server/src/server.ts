@@ -10,7 +10,7 @@ import cookieParser from 'cookie-parser'
 import passport from 'passport'
 import { env } from './config/env'
 import { initPassport } from './config/passport'
-import authRoutes from './modules/auth/auth.routes'
+import authRoutes from './features/auth/auth.routes'
 import roomsRoutes from './features/rooms/rooms.routes'
 import messagesRoutes from './features/messages/messages.routes'
 import searchRoutes from './features/search/search.routes'
@@ -25,6 +25,10 @@ import { initSocketServer } from './features/sockets/socketServer'
 
 const app = express()
 const httpServer = http.createServer(app)
+
+if (env.TRUST_PROXY) {
+  app.set('trust proxy', 1)
+}
 
 // ─── Middleware ────────────────────────────────────────────────────────────────
 app.use(helmet())

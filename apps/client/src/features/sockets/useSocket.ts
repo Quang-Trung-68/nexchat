@@ -11,12 +11,14 @@ import { useTypingPresenceStore } from '@/features/sockets/typingPresence.store'
  */
 export function useSocket() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const emailVerified = useAuthStore((s) => !!s.user?.emailVerifiedAt)
+  const shouldConnect = isAuthenticated && emailVerified
   const [socket, setSocket] = useState<Socket | null>(null)
   const [connected, setConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!shouldConnect) {
       useRealtimeMessagesStore.getState().reset()
       usePendingImageUploadsStore.getState().reset()
       useTypingPresenceStore.getState().reset()
@@ -64,7 +66,7 @@ export function useSocket() {
       setSocket(null)
       setConnected(false)
     }
-  }, [isAuthenticated])
+  }, [shouldConnect])
 
   return { socket, connected, error }
 }

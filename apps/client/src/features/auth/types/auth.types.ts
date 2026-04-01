@@ -5,8 +5,12 @@ export interface User {
   displayName: string
   avatarUrl: string | null
   bio: string | null
+  phone: string | null
   isOnline: boolean
   lastSeenAt: string
+  emailVerifiedAt: string | null
+  /** Chỉ có từ GET /me */
+  hasPassword?: boolean
 }
 
 export interface AuthState {
@@ -26,6 +30,6 @@ export interface RegisterPayload {
 }
 
 export interface LoginPayload {
-  email: string
+  identifier: string
   password: string
 }

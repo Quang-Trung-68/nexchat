@@ -1,12 +1,14 @@
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Link, useSearchParams } from 'react-router-dom'
 import axios from 'axios'
-import { useResetPassword } from '../queries/auth.queries'
+import { useForgotPassword, useResetPassword } from '../queries/auth.queries'
 
 const resetSchema = z
   .object({
+    code: z.string().min(4).max(12),
     password: z
       .string()
       .min(8)
@@ -30,8 +32,10 @@ function getErrorMessage(err: unknown): string {
 
 export function ResetPasswordPage() {
   const [params] = useSearchParams()
-  const token = params.get('token') ?? ''
+  const email = (params.get('email') ?? '').trim().toLowerCase()
   const reset = useResetPassword()
+  const forgot = useForgotPassword()
+  const [cooldown, setCooldown] = useState(0)
 
   const {
     register,
@@ -39,26 +43,40 @@ export function ResetPasswordPage() {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(resetSchema),
-    defaultValues: { password: '', confirmPassword: '' },
+    defaultValues: { code: '', password: '', confirmPassword: '' },
   })
 
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const t = setTimeout(() => setCooldown((c) => Math.max(0, c - 1)), 1000)
+    return () => clearTimeout(t)
+  }, [cooldown])
+
   const onSubmit = (data: FormValues) => {
-    if (!token) return
+    if (!email) return
     reset.mutate({
-      token,
+      email,
+      code: data.code.trim(),
       password: data.password,
       confirmPassword: data.confirmPassword,
     })
   }
 
+  const onResend = () => {
+    if (!email || cooldown > 0 || forgot.isPending) return
+    forgot.mutate(email, {
+      onSuccess: () => setCooldown(60),
+    })
+  }
+
   const serverError = reset.isError && reset.error ? getErrorMessage(reset.error) : null
 
-  if (!token) {
+  if (!email) {
     return (
       <div className="mx-auto max-w-md px-4 py-12 text-center">
-        <p className="text-neutral-700">Thiếu token reset. Kiểm tra lại link trong email.</p>
-        <Link to="/login" className="mt-4 inline-block text-indigo-600 hover:underline">
-          Đăng nhập
+        <p className="text-neutral-700">Thiếu email. Bắt đầu từ bước quên mật khẩu.</p>
+        <Link to="/forgot-password" className="mt-4 inline-block text-primary hover:underline">
+          Quên mật khẩu
         </Link>
       </div>
     )
@@ -71,8 +89,26 @@ export function ResetPasswordPage() {
         className="mx-auto flex w-full max-w-md flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-8 shadow-sm"
       >
         <h1 className="text-2xl font-semibold text-neutral-900">Đặt lại mật khẩu</h1>
+        <p className="text-sm text-neutral-600">
+          Mã đã gửi tới <span className="font-medium">{email}</span>. Nhập mã và mật khẩu mới.
+        </p>
 
         {serverError ? <div className="error-alert">{serverError}</div> : null}
+
+        <div className="flex flex-col gap-1">
+          <label htmlFor="code" className="text-sm font-medium text-neutral-700">
+            Mã xác thực
+          </label>
+          <input
+            id="code"
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            className="rounded-lg border border-neutral-300 px-3 py-2 text-neutral-900 outline-none focus:ring-2 focus:ring-primary"
+            {...register('code')}
+          />
+          {errors.code ? <p className="text-sm text-red-600">{errors.code.message}</p> : null}
+        </div>
 
         <div className="flex flex-col gap-1">
           <label htmlFor="password" className="text-sm font-medium text-neutral-700">
@@ -82,7 +118,7 @@ export function ResetPasswordPage() {
             id="password"
             type="password"
             autoComplete="new-password"
-            className="rounded-lg border border-neutral-300 px-3 py-2 text-neutral-900 outline-none focus:ring-2 focus:ring-indigo-500"
+            className="rounded-lg border border-neutral-300 px-3 py-2 text-neutral-900 outline-none focus:ring-2 focus:ring-primary"
             {...register('password')}
           />
           {errors.password ? (
@@ -98,7 +134,7 @@ export function ResetPasswordPage() {
             id="confirmPassword"
             type="password"
             autoComplete="new-password"
-            className="rounded-lg border border-neutral-300 px-3 py-2 text-neutral-900 outline-none focus:ring-2 focus:ring-indigo-500"
+            className="rounded-lg border border-neutral-300 px-3 py-2 text-neutral-900 outline-none focus:ring-2 focus:ring-primary"
             {...register('confirmPassword')}
           />
           {errors.confirmPassword ? (
@@ -109,13 +145,22 @@ export function ResetPasswordPage() {
         <button
           type="submit"
           disabled={reset.isPending}
-          className="rounded-lg bg-indigo-600 px-4 py-2.5 font-medium text-white transition hover:bg-indigo-700 disabled:opacity-60"
+          className="rounded-lg bg-primary px-4 py-2.5 font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
         >
           {reset.isPending ? 'Đang cập nhật...' : 'Cập nhật mật khẩu'}
         </button>
 
+        <button
+          type="button"
+          disabled={cooldown > 0 || forgot.isPending}
+          onClick={onResend}
+          className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-800 hover:bg-neutral-50 disabled:opacity-50"
+        >
+          {cooldown > 0 ? `Gửi lại mã sau ${cooldown}s` : forgot.isPending ? 'Đang gửi...' : 'Gửi lại mã'}
+        </button>
+
         <p className="text-center text-sm text-neutral-600">
-          <Link to="/login" className="text-indigo-600 hover:underline">
+          <Link to="/login" className="text-primary hover:underline">
             Quay lại đăng nhập
           </Link>
         </p>

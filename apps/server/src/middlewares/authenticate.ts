@@ -24,6 +24,8 @@ declare global {
       displayName: string
       avatarUrl: string | null
       bio: string | null
+      phone: string | null
+      emailVerifiedAt: Date | null
       isOnline: boolean
       lastSeenAt: Date
       createdAt: Date

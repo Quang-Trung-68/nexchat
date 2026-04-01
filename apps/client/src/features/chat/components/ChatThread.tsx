@@ -124,6 +124,9 @@ export function ChatThread({
   const scrollRef = useRef<HTMLDivElement>(null)
   const messagesContentRef = useRef<HTMLDivElement>(null)
   const composerRef = useRef<ChatComposerHandle>(null)
+  /** Bù scroll sau khi prepend trang tin cũ (fetchNextPage). */
+  const pendingScrollRestoreRef = useRef<{ prevHeight: number; prevScrollTop: number } | null>(null)
+  const fetchHistoryDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const infiniteRef = useRef(infinite)
   infiniteRef.current = infinite
 
@@ -296,6 +299,11 @@ export function ChatThread({
     isNearBottomRef.current = true
     setAnchorAtBottomId(null)
     prevLastMsgIdRef.current = null
+    pendingScrollRestoreRef.current = null
+    if (fetchHistoryDebounceRef.current) {
+      clearTimeout(fetchHistoryDebounceRef.current)
+      fetchHistoryDebounceRef.current = null
+    }
   }, [conversationId])
 
   useEffect(() => {
@@ -330,16 +338,46 @@ export function ChatThread({
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
+    const debounceMs = 150
     const handler = () => {
       updateScrollState()
-      const q = infiniteRef.current
-      if (el.scrollTop < 80 && q.hasNextPage && !q.isFetchingNextPage) {
+      if (fetchHistoryDebounceRef.current) clearTimeout(fetchHistoryDebounceRef.current)
+      fetchHistoryDebounceRef.current = window.setTimeout(() => {
+        fetchHistoryDebounceRef.current = null
+        const el2 = scrollRef.current
+        const q = infiniteRef.current
+        if (!el2) return
+        updateScrollState()
+        if (el2.scrollTop >= 80) return
+        if (!q.hasNextPage || q.isFetchingNextPage) return
+        pendingScrollRestoreRef.current = {
+          prevHeight: el2.scrollHeight,
+          prevScrollTop: el2.scrollTop,
+        }
         void q.fetchNextPage()
-      }
+      }, debounceMs)
     }
     el.addEventListener('scroll', handler, { passive: true })
-    return () => el.removeEventListener('scroll', handler)
+    return () => {
+      el.removeEventListener('scroll', handler)
+      if (fetchHistoryDebounceRef.current) {
+        clearTimeout(fetchHistoryDebounceRef.current)
+        fetchHistoryDebounceRef.current = null
+      }
+    }
   }, [conversationId, updateScrollState])
+
+  /** Sau khi prepend tin cũ: giữ vị trí mắt (bù delta scrollHeight). */
+  useLayoutEffect(() => {
+    const pending = pendingScrollRestoreRef.current
+    if (!pending) return
+    const el = scrollRef.current
+    if (!el) return
+    if (infinite.isFetchingNextPage) return
+    const delta = el.scrollHeight - pending.prevHeight
+    el.scrollTop = pending.prevScrollTop + delta
+    pendingScrollRestoreRef.current = null
+  }, [infinite.isFetchingNextPage, infinite.data?.pages?.length, conversationId])
 
   /**
    * Khi nội dung (ảnh) làm scrollHeight tăng — nếu user đang ở gần đáy thì bám đáy

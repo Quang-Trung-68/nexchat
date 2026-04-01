@@ -1,7 +1,8 @@
 import { Router } from 'express'
 import rateLimit from 'express-rate-limit'
 import { authenticate } from '@/middlewares/authenticate'
-import { validate } from '@/modules/auth/auth.validation'
+import { requireEmailVerified } from '@/middlewares/requireEmailVerified'
+import { validate } from '@/features/auth/auth.validation'
 import * as controller from './friends.controller'
 import { friendRequestSchema } from './friends.validation'
 
@@ -15,6 +16,7 @@ const writeLimiter = rateLimit({
 })
 
 router.use(authenticate)
+router.use(requireEmailVerified)
 router.get('/', controller.listAccepted)
 router.get('/incoming', controller.listIncoming)
 router.get('/outgoing', controller.listOutgoing)

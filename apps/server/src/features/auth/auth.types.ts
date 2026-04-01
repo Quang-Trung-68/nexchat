@@ -29,7 +29,7 @@ export interface RegisterDto {
 }
 
 export interface LoginDto {
-  email: string
+  identifier: string
   password: string
 }
 
@@ -38,7 +38,19 @@ export interface ForgotPasswordDto {
 }
 
 export interface ResetPasswordDto {
-  token: string
+  email: string
+  code: string
   password: string
+  confirmPassword: string
+}
+
+export interface ChangePasswordDto {
+  currentPassword: string
+  newPassword: string
+  confirmNewPassword: string
+}
+
+export interface SetPasswordDto {
+  newPassword: string
   confirmPassword: string
 }

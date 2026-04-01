@@ -13,6 +13,7 @@ export function ContactsLayout() {
     <div className="flex h-[100dvh] w-full overflow-hidden bg-background text-foreground">
       <ChatNavRail
         displayName={user?.displayName}
+        username={user?.username}
         avatarUrl={user?.avatarUrl}
         onLogout={() => void logout()}
         contactsPendingBadge={contactsPendingBadge}

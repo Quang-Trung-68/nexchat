@@ -78,7 +78,7 @@ export function ContactsSubNav() {
           {({ isActive }) => (
             <span
               className={cn(
-                'flex min-h-11 items-center gap-2 rounded-md px-2 py-2 text-sm font-medium transition-colors',
+                'flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm font-medium transition-colors',
                 isActive
                   ? 'bg-[#e5f0ff] text-[#0068ff]'
                   : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground'

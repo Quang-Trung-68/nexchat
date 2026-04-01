@@ -25,9 +25,10 @@ function normalizeRoomListItem(room: RoomListItem): RoomListItem {
 
 export function useRoomsQuery() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const emailVerified = useAuthStore((s) => !!s.user?.emailVerifiedAt)
   return useQuery({
     queryKey: roomsKeys.all,
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && emailVerified,
     queryFn: async () => {
       const { data } = await api.get<{ success: boolean; data: RoomListItem[] }>('/rooms')
       return data.data.map(normalizeRoomListItem)

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuthStore } from '../store/auth.store'
 import * as authService from '../services/auth.service'
+import type { PatchProfilePayload } from '../services/auth.service'
 import type { LoginPayload, RegisterPayload, User } from '../types/auth.types'
 
 export const authKeys = {
@@ -20,6 +21,14 @@ function isMeSuccess(
     'data' in data &&
     typeof (data as { data: { user?: User } }).data?.user === 'object'
   )
+}
+
+function postAuthNavigate(navigate: ReturnType<typeof useNavigate>, user: User) {
+  if (!user.emailVerifiedAt) {
+    navigate('/verify-email', { replace: true })
+  } else {
+    navigate('/chat', { replace: true })
+  }
 }
 
 export function useMe() {
@@ -60,7 +69,7 @@ export function useLogin() {
       if (isMeSuccess(body)) {
         setUser(body.data.user)
         queryClient.setQueryData(authKeys.me, body.data.user)
-        navigate('/', { replace: true })
+        postAuthNavigate(navigate, body.data.user)
       }
     },
   })
@@ -77,7 +86,7 @@ export function useRegister() {
       if (isMeSuccess(body)) {
         setUser(body.data.user)
         queryClient.setQueryData(authKeys.me, body.data.user)
-        navigate('/', { replace: true })
+        postAuthNavigate(navigate, body.data.user)
       }
     },
   })
@@ -106,17 +115,92 @@ export function useForgotPassword() {
 export function useResetPassword() {
   const navigate = useNavigate()
   return useMutation({
-    mutationFn: ({
-      token,
-      password,
-      confirmPassword,
-    }: {
-      token: string
+    mutationFn: (payload: {
+      email: string
+      code: string
       password: string
       confirmPassword: string
-    }) => authService.resetPassword(token, password, confirmPassword),
+    }) => authService.resetPassword(payload),
     onSuccess: () => {
       navigate('/login', { replace: true })
+    },
+  })
+}
+
+export function useVerifyEmail() {
+  const queryClient = useQueryClient()
+  const setUser = useAuthStore((s) => s.setUser)
+  const navigate = useNavigate()
+  return useMutation({
+    mutationFn: (code: string) => authService.verifyEmail(code),
+    onSuccess: (res) => {
+      const body = res.data
+      if (isMeSuccess(body) && body.data.user) {
+        setUser(body.data.user)
+        queryClient.setQueryData(authKeys.me, body.data.user)
+        navigate('/chat', { replace: true })
+      }
+    },
+  })
+}
+
+export function useResendVerification() {
+  return useMutation({
+    mutationFn: () => authService.resendVerification(),
+  })
+}
+
+export function useChangePassword() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: {
+      currentPassword: string
+      newPassword: string
+      confirmNewPassword: string
+    }) => authService.changePassword(payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: authKeys.me })
+    },
+  })
+}
+
+export function useSetPassword() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: { newPassword: string; confirmPassword: string }) =>
+      authService.setPassword(payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: authKeys.me })
+    },
+  })
+}
+
+export function useUpdateProfile() {
+  const queryClient = useQueryClient()
+  const setUser = useAuthStore((s) => s.setUser)
+  return useMutation({
+    mutationFn: (payload: PatchProfilePayload) => authService.patchProfile(payload),
+    onSuccess: (res) => {
+      const body = res.data
+      if (isMeSuccess(body)) {
+        setUser(body.data.user)
+        queryClient.setQueryData(authKeys.me, body.data.user)
+      }
+    },
+  })
+}
+
+export function useUploadAvatar() {
+  const queryClient = useQueryClient()
+  const setUser = useAuthStore((s) => s.setUser)
+  return useMutation({
+    mutationFn: (file: File) => authService.uploadAvatar(file),
+    onSuccess: (res) => {
+      const body = res.data
+      if (isMeSuccess(body)) {
+        setUser(body.data.user)
+        queryClient.setQueryData(authKeys.me, body.data.user)
+      }
     },
   })
 }

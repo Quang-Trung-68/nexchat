@@ -19,7 +19,8 @@ async function main() {
   await prisma.conversation.deleteMany()
   await prisma.friendship.deleteMany()
   await prisma.refreshToken.deleteMany()
-  await prisma.passwordResetToken.deleteMany()
+  await prisma.forgotPasswordOtp.deleteMany()
+  await prisma.emailVerificationToken.deleteMany()
   await prisma.oAuthAccount.deleteMany()
   await prisma.user.deleteMany()
 
@@ -39,6 +40,7 @@ async function main() {
         avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=alice',
         bio: 'Frontend developer & coffee lover ☕',
         password: hashedPassword,
+        emailVerifiedAt: new Date(),
         isOnline: true,
         lastSeenAt: new Date(),
       },
@@ -52,6 +54,7 @@ async function main() {
         avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=bob',
         bio: 'Backend engineer, Node.js enthusiast',
         password: hashedPassword,
+        emailVerifiedAt: new Date(),
         isOnline: false,
         lastSeenAt: new Date(Date.now() - 30 * 60 * 1000), // 30 min ago
       },
@@ -64,6 +67,7 @@ async function main() {
         avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=carol',
         bio: 'UI/UX designer',
         password: hashedPassword,
+        emailVerifiedAt: new Date(),
         isOnline: true,
         lastSeenAt: new Date(),
       },
@@ -76,6 +80,7 @@ async function main() {
         avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=dave',
         bio: 'DevOps & cloud infrastructure',
         password: hashedPassword,
+        emailVerifiedAt: new Date(),
         isOnline: false,
         lastSeenAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
       },

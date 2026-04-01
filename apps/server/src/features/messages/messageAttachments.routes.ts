@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import multer from 'multer'
 import { authenticate } from '@/middlewares/authenticate'
+import { requireEmailVerified } from '@/middlewares/requireEmailVerified'
 import { getUploadConfig } from '@/config/upload.config'
 import * as controller from './messages.attachments.controller'
 
@@ -13,6 +14,7 @@ const upload = multer({
 const router = Router()
 
 router.use(authenticate)
+router.use(requireEmailVerified)
 
 router.post('/:messageId/images', upload, controller.uploadMessageImages)
 

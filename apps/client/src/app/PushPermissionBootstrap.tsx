@@ -15,9 +15,10 @@ export function PushPermissionBootstrap() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   /** Đổi user (đăng nhập lại / tài khoản khác) → chạy lại để POST /push/subscribe đúng session. */
   const userId = useAuthStore((s) => s.user?.id)
+  const emailVerified = useAuthStore((s) => !!s.user?.emailVerifiedAt)
 
   useEffect(() => {
-    if (!isAuthenticated || !userId) return
+    if (!isAuthenticated || !userId || !emailVerified) return
 
     let cancelled = false
     let detachGesture: (() => void) | null = null
@@ -86,7 +87,7 @@ export function PushPermissionBootstrap() {
       cancelled = true
       detachGesture?.()
     }
-  }, [isAuthenticated, userId])
+  }, [isAuthenticated, userId, emailVerified])
 
   return null
 }

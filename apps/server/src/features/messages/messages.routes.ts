@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import rateLimit from 'express-rate-limit'
 import { authenticate } from '@/middlewares/authenticate'
+import { requireEmailVerified } from '@/middlewares/requireEmailVerified'
 import * as controller from './messages.controller'
 import {
   validateBody,
@@ -20,6 +21,7 @@ const searchLimiter = rateLimit({
 const router = Router()
 
 router.use(authenticate)
+router.use(requireEmailVerified)
 
 router.get(
   '/:id/messages/search',

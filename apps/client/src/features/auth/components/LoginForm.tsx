@@ -7,7 +7,7 @@ import { useLogin } from '../queries/auth.queries'
 import type { LoginPayload } from '../types/auth.types'
 
 const loginSchema = z.object({
-  email: z.string().email('Email không hợp lệ'),
+  identifier: z.string().min(1, 'Nhập email, username hoặc số điện thoại'),
   password: z.string().min(1, 'Nhập mật khẩu'),
 })
 
@@ -27,7 +27,7 @@ export function LoginForm() {
     formState: { errors },
   } = useForm<LoginPayload>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { identifier: '', password: '' },
   })
 
   const onSubmit = (data: LoginPayload) => {
@@ -47,18 +47,18 @@ export function LoginForm() {
       {serverError ? <div className="error-alert">{serverError}</div> : null}
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="email" className="text-sm font-medium text-neutral-700">
-          Email
+        <label htmlFor="identifier" className="text-sm font-medium text-neutral-700">
+          Email, username hoặc số điện thoại
         </label>
         <input
-          id="email"
-          type="email"
-          autoComplete="email"
-          className="rounded-lg border border-neutral-300 px-3 py-2 text-neutral-900 outline-none focus:ring-2 focus:ring-indigo-500"
-          {...register('email')}
+          id="identifier"
+          type="text"
+          autoComplete="username"
+          className="rounded-lg border border-neutral-300 px-3 py-2 text-neutral-900 outline-none focus:ring-2 focus:ring-primary"
+          {...register('identifier')}
         />
-        {errors.email ? (
-          <p className="text-sm text-red-600">{errors.email.message}</p>
+        {errors.identifier ? (
+          <p className="text-sm text-red-600">{errors.identifier.message}</p>
         ) : null}
       </div>
 
@@ -70,7 +70,7 @@ export function LoginForm() {
           id="password"
           type="password"
           autoComplete="current-password"
-          className="rounded-lg border border-neutral-300 px-3 py-2 text-neutral-900 outline-none focus:ring-2 focus:ring-indigo-500"
+          className="rounded-lg border border-neutral-300 px-3 py-2 text-neutral-900 outline-none focus:ring-2 focus:ring-primary"
           {...register('password')}
         />
         {errors.password ? (
@@ -81,7 +81,7 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={login.isPending}
-        className="rounded-lg bg-indigo-600 px-4 py-2.5 font-medium text-white transition hover:bg-indigo-700 disabled:opacity-60"
+        className="rounded-lg bg-primary px-4 py-2.5 font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
       >
         {login.isPending ? 'Đang đăng nhập...' : 'Đăng nhập'}
       </button>
@@ -97,13 +97,13 @@ export function LoginForm() {
       </button>
 
       <p className="text-center text-sm text-neutral-600">
-        <Link to="/forgot-password" className="text-indigo-600 hover:underline">
+        <Link to="/forgot-password" className="text-primary hover:underline">
           Quên mật khẩu?
         </Link>
       </p>
       <p className="text-center text-sm text-neutral-600">
         Chưa có tài khoản?{' '}
-        <Link to="/register" className="font-medium text-indigo-600 hover:underline">
+        <Link to="/register" className="font-medium text-primary hover:underline">
           Đăng ký
         </Link>
       </p>

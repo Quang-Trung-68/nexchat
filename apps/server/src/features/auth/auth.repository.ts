@@ -30,7 +30,8 @@ async function generateUniqueUsername(email: string): Promise<string> {
 
 export const authRepository = {
   findUserByEmail(email: string) {
-    return prisma.user.findUnique({ where: { email } })
+    const e = email.trim().toLowerCase()
+    return prisma.user.findUnique({ where: { email: e } })
   },
 
   findUserById(id: string) {
@@ -43,6 +44,8 @@ export const authRepository = {
         displayName: true,
         avatarUrl: true,
         bio: true,
+        phone: true,
+        emailVerifiedAt: true,
         isOnline: true,
         lastSeenAt: true,
         createdAt: true,
@@ -54,6 +57,33 @@ export const authRepository = {
 
   findUserByUsername(username: string) {
     return prisma.user.findUnique({ where: { username } })
+  },
+
+  /** Email (có @), số điện thoại (chỉ chữ số 8–15), hoặc username. */
+  findUserByLoginIdentifier(identity: string) {
+    const raw = identity.trim()
+    if (!raw) return Promise.resolve(null)
+    if (raw.includes('@')) {
+      return prisma.user.findFirst({
+        where: { email: raw.trim().toLowerCase(), deletedAt: null },
+      })
+    }
+    const digitsOnly = raw.replace(/\D/g, '')
+    if (digitsOnly.length >= 8 && /^\d+$/.test(digitsOnly)) {
+      return prisma.user.findFirst({
+        where: { phone: digitsOnly, deletedAt: null },
+      })
+    }
+    return prisma.user.findFirst({
+      where: { username: raw.toLowerCase(), deletedAt: null },
+    })
+  },
+
+  findUserPasswordFields(userId: string) {
+    return prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, password: true, email: true },
+    })
   },
 
   createUser(data: Prisma.UserCreateInput) {
@@ -90,6 +120,12 @@ export const authRepository = {
           providerId: profile.providerId,
         },
       })
+      if (!byEmail.emailVerifiedAt) {
+        return prisma.user.update({
+          where: { id: byEmail.id },
+          data: { emailVerifiedAt: new Date() },
+        })
+      }
       return byEmail
     }
 
@@ -102,6 +138,7 @@ export const authRepository = {
           username,
           displayName: profile.displayName,
           avatarUrl: profile.avatarUrl ?? null,
+          emailVerifiedAt: new Date(),
         },
       })
       await tx.oAuthAccount.create({
@@ -133,28 +170,49 @@ export const authRepository = {
     return prisma.refreshToken.deleteMany({ where: { userId } })
   },
 
-  deletePasswordResetTokensForUser(userId: string) {
-    return prisma.passwordResetToken.deleteMany({ where: { userId } })
-  },
-
-  createPasswordResetToken(userId: string, tokenHash: string, expiresAt: Date) {
-    return prisma.passwordResetToken.create({
-      data: { userId, token: tokenHash, expiresAt },
+  upsertEmailVerificationToken(userId: string, codeHash: string, expiresAt: Date) {
+    return prisma.emailVerificationToken.upsert({
+      where: { userId },
+      create: { userId, codeHash, expiresAt },
+      update: { codeHash, expiresAt, createdAt: new Date() },
     })
   },
 
-  findPasswordResetToken(tokenHash: string) {
-    return prisma.passwordResetToken.findUnique({ where: { token: tokenHash } })
+  deleteEmailVerificationToken(userId: string) {
+    return prisma.emailVerificationToken.deleteMany({ where: { userId } })
   },
 
-  deletePasswordResetToken(tokenHash: string) {
-    return prisma.passwordResetToken.deleteMany({ where: { token: tokenHash } })
+  findEmailVerificationToken(userId: string) {
+    return prisma.emailVerificationToken.findUnique({ where: { userId } })
+  },
+
+  upsertForgotPasswordOtp(userId: string, codeHash: string, expiresAt: Date) {
+    return prisma.forgotPasswordOtp.upsert({
+      where: { userId },
+      create: { userId, codeHash, expiresAt },
+      update: { codeHash, expiresAt, createdAt: new Date() },
+    })
+  },
+
+  deleteForgotPasswordOtp(userId: string) {
+    return prisma.forgotPasswordOtp.deleteMany({ where: { userId } })
+  },
+
+  findForgotPasswordOtp(userId: string) {
+    return prisma.forgotPasswordOtp.findUnique({ where: { userId } })
   },
 
   updateUserPassword(userId: string, hashedPassword: string) {
     return prisma.user.update({
       where: { id: userId },
       data: { password: hashedPassword },
+    })
+  },
+
+  setEmailVerifiedAt(userId: string, at: Date = new Date()) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { emailVerifiedAt: at },
     })
   },
 }

@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { AddFriendDialog } from './AddFriendDialog'
 import { CreateGroupDialog } from './CreateGroupDialog'
@@ -78,16 +77,6 @@ export function ChatGlobalSearchToolbar({
             </button>
           ) : null}
         </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-9 shrink-0 px-2 text-xs text-muted-foreground hover:bg-[#e5f0ff] hover:text-foreground"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={onCloseSearchUi}
-        >
-          Đóng
-        </Button>
         <AddFriendDialog />
         <CreateGroupDialog />
       </div>

@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express'
 import passport from 'passport'
 import type { User } from '@prisma/client'
+import { prisma } from '@/config/prisma'
 import { env } from '@/config/env'
 import { AppError } from '@/shared/errors/AppError'
 import { authService } from './auth.service'
@@ -39,7 +40,10 @@ export async function register(req: Request, res: Response, next: NextFunction) 
     const user = await authService.register(req.body)
     const tokens = await authService.generateTokenPair(user.id, user.email)
     setAuthCookies(res, tokens)
-    res.status(201).json({ success: true, data: { user } })
+    res.status(201).json({
+      success: true,
+      data: { user: { ...user, hasPassword: true } },
+    })
   } catch (e) {
     next(e)
   }
@@ -53,13 +57,23 @@ export function login(req: Request, res: Response, next: NextFunction) {
       if (err) return next(err)
       if (!user) {
         return next(
-          new AppError('Email hoặc mật khẩu không đúng', 401, 'INVALID_CREDENTIALS')
+          new AppError(
+            'Email/username/số điện thoại hoặc mật khẩu không đúng',
+            401,
+            'INVALID_CREDENTIALS'
+          )
         )
       }
       try {
         const tokens = await authService.generateTokenPair(user.id, user.email)
         setAuthCookies(res, tokens)
-        res.json({ success: true, data: { user: toPublicUser(user) } })
+        const u = user as User
+        res.json({
+          success: true,
+          data: {
+            user: { ...toPublicUser(user), hasPassword: !!u.password },
+          },
+        })
       } catch (e) {
         next(e)
       }
@@ -92,8 +106,21 @@ export async function refresh(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-export function getMe(req: Request, res: Response) {
-  res.json({ success: true, data: { user: req.user } })
+export async function getMe(req: Request, res: Response, next: NextFunction) {
+  try {
+    const row = await prisma.user.findUnique({
+      where: { id: req.user!.id },
+      select: { password: true },
+    })
+    res.json({
+      success: true,
+      data: {
+        user: { ...req.user, hasPassword: !!row?.password },
+      },
+    })
+  } catch (e) {
+    next(e)
+  }
 }
 
 export function googleAuth(req: Request, res: Response, next: NextFunction) {
@@ -143,7 +170,7 @@ export async function forgotPassword(req: Request, res: Response, next: NextFunc
     await authService.forgotPassword(req.body.email)
     res.json({
       success: true,
-      message: 'Nếu email tồn tại, chúng tôi đã gửi link reset',
+      message: 'Nếu email tồn tại, chúng tôi đã gửi mã xác thực',
     })
   } catch (e) {
     next(e)
@@ -155,6 +182,68 @@ export async function resetPassword(req: Request, res: Response, next: NextFunct
     await authService.resetPassword(req.body)
     clearAuthCookies(res)
     res.json({ success: true, message: 'Mật khẩu đã được cập nhật' })
+  } catch (e) {
+    next(e)
+  }
+}
+
+export async function verifyEmail(req: Request, res: Response, next: NextFunction) {
+  try {
+    await authService.verifyEmail(req.user!.id, req.body.code)
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.id },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        displayName: true,
+        avatarUrl: true,
+        bio: true,
+        emailVerifiedAt: true,
+        isOnline: true,
+        lastSeenAt: true,
+        createdAt: true,
+        updatedAt: true,
+        deletedAt: true,
+      },
+    })
+    const pw = await prisma.user.findUnique({
+      where: { id: req.user!.id },
+      select: { password: true },
+    })
+    res.json({
+      success: true,
+      data: {
+        user: user ? { ...user, hasPassword: !!pw?.password } : undefined,
+      },
+    })
+  } catch (e) {
+    next(e)
+  }
+}
+
+export async function resendVerification(req: Request, res: Response, next: NextFunction) {
+  try {
+    await authService.resendVerificationEmail(req.user!.id)
+    res.json({ success: true, message: 'Đã gửi lại mã xác thực' })
+  } catch (e) {
+    next(e)
+  }
+}
+
+export async function changePassword(req: Request, res: Response, next: NextFunction) {
+  try {
+    await authService.changePassword(req.user!.id, req.body)
+    res.json({ success: true, message: 'Mật khẩu đã được cập nhật' })
+  } catch (e) {
+    next(e)
+  }
+}
+
+export async function setPassword(req: Request, res: Response, next: NextFunction) {
+  try {
+    await authService.setPassword(req.user!.id, req.body)
+    res.json({ success: true, message: 'Mật khẩu đã được đặt' })
   } catch (e) {
     next(e)
   }

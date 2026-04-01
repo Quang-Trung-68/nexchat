@@ -7,9 +7,9 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
 import { Strategy as GitHubStrategy } from 'passport-github2'
 import { AppError } from '@/shared/errors/AppError'
 import { env } from './env'
-import { authRepository } from '@/modules/auth/auth.repository'
-import { authService } from '@/modules/auth/auth.service'
-import type { OAuthProfile, TokenPair } from '@/modules/auth/auth.types'
+import { authRepository } from '@/features/auth/auth.repository'
+import { authService } from '@/features/auth/auth.service'
+import type { OAuthProfile, TokenPair } from '@/features/auth/auth.types'
 
 declare global {
   namespace Express {
@@ -22,10 +22,10 @@ declare global {
 export function initPassport() {
   passport.use(
     new LocalStrategy(
-      { usernameField: 'email', passwordField: 'password' },
-      async (email, password, done) => {
+      { usernameField: 'identifier', passwordField: 'password' },
+      async (identifier, password, done) => {
         try {
-          const user = await authRepository.findUserByEmail(email)
+          const user = await authRepository.findUserByLoginIdentifier(identifier)
           if (!user) return done(null, false)
           if (user.deletedAt) return done(null, false)
           if (!user.password) {

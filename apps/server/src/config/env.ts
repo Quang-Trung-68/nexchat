@@ -37,6 +37,11 @@ function redisUrlPreferIpv4Loopback(url: string): string {
 
 export const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
+  /** Nginx / reverse proxy — `req.ip` và rate limit theo client thật. */
+  TRUST_PROXY:
+    process.env.TRUST_PROXY === '1' ||
+    process.env.TRUST_PROXY === 'true' ||
+    process.env.NODE_ENV === 'production',
   PORT: parseInt(process.env.PORT || '5000', 10),
   DATABASE_URL: process.env.DATABASE_URL!,
   REDIS_URL: redisUrlPreferIpv4Loopback(process.env.REDIS_URL || 'redis://127.0.0.1:6379'),

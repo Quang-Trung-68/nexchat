@@ -252,23 +252,28 @@ All route-level pages MUST be wrapped.
 apps/server/
 ├── src/
 │   ├── config/
-│   ├── modules/
-│   ├── sockets/
+│   ├── features/
+│   │   ├── auth/
+│   │   ├── users/
+│   │   ├── messages/
+│   │   ├── sockets/
+│   │   └── ...
 │   ├── jobs/
 │   ├── middlewares/
-│   ├── prisma/
 │   └── server.ts
 ```
 
 ---
 
-## Module Template
+## Server feature template
+
+Đặt mỗi miền nghiệp vụ trong `src/features/<feature>/` (ví dụ `features/auth`, `features/users`), không dùng thư mục `src/modules/`.
 
 ```text
-src/modules/<feature>/
+src/features/<feature>/
 ├── <feature>.controller.ts
 ├── <feature>.service.ts
-├── <feature>.repository.ts
+├── <feature>.repository.ts   (nếu cần)
 ├── <feature>.routes.ts
 ├── <feature>.validation.ts
 └── <feature>.types.ts
@@ -496,7 +501,7 @@ Whenever adding a feature, follow this exact order:
 1. Create frontend feature
 2. Create Zustand store if UI state needed
 3. Create TanStack query hooks
-4. Create backend module
+4. Create backend feature under `apps/server/src/features/<name>/`
 5. Update Prisma schema
 6. Add indexes
 7. Add routes

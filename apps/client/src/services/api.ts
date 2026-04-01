@@ -27,7 +27,9 @@ function isAuthEndpointNoRefresh(url: string): boolean {
     url.includes('/auth/login') ||
     url.includes('/auth/register') ||
     url.includes('/auth/forgot-password') ||
-    url.includes('/auth/reset-password')
+    url.includes('/auth/reset-password') ||
+    url.includes('/auth/verify-email') ||
+    url.includes('/auth/resend-verification')
   )
 }
 
@@ -38,8 +40,17 @@ function shouldRedirectToLoginOnAuthFailure(): boolean {
     path !== '/login' &&
     path !== '/register' &&
     path !== '/forgot-password' &&
+    path !== '/verify-email' &&
     !path.startsWith('/reset-password')
   )
+}
+
+function shouldRedirectToVerifyEmail(status: number, configUrl: string): boolean {
+  if (status !== 403) return false
+  const path = window.location.pathname
+  if (path === '/verify-email') return false
+  if (configUrl.includes('/auth/me')) return false
+  return true
 }
 
 api.interceptors.response.use(
@@ -47,11 +58,17 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const status = error.response?.status
     const config = error.config as RetryConfig | undefined
-    if (status !== 401 || !config) {
+    const url = String(config?.url ?? '')
+    const errCode = (error.response?.data as { error?: { code?: string } } | undefined)?.error?.code
+
+    if (status === 403 && errCode === 'EMAIL_NOT_VERIFIED' && shouldRedirectToVerifyEmail(status, url)) {
+      window.location.href = '/verify-email'
       return Promise.reject(error)
     }
 
-    const url = String(config.url ?? '')
+    if (status !== 401 || !config) {
+      return Promise.reject(error)
+    }
 
     if (url.includes('/auth/refresh')) {
       if (shouldRedirectToLoginOnAuthFailure()) {

@@ -1,7 +1,8 @@
 import jwt from 'jsonwebtoken'
 import type { Server, Socket } from 'socket.io'
 import { env } from '@/config/env'
-import type { JwtPayload } from '@/modules/auth/auth.types'
+import { authRepository } from '@/features/auth/auth.repository'
+import type { JwtPayload } from '@/features/auth/auth.types'
 
 function parseCookieHeader(header: string | undefined): Record<string, string> {
   if (!header) return {}
@@ -43,17 +44,29 @@ export function extractAccessToken(socket: Socket): string | null {
 }
 
 export function registerSocketAuthMiddleware(io: Server) {
-  io.use((socket, next) => {
+  io.use(async (socket, next) => {
     const token = extractAccessToken(socket)
     if (!token) {
       return next(new Error('UNAUTHORIZED'))
     }
+    let payload: JwtPayload
     try {
-      const payload = jwt.verify(token, env.JWT_ACCESS_SECRET) as JwtPayload
+      payload = jwt.verify(token, env.JWT_ACCESS_SECRET) as JwtPayload
+    } catch {
+      return next(new Error('UNAUTHORIZED'))
+    }
+    try {
+      const user = await authRepository.findUserById(payload.sub)
+      if (!user || user.deletedAt) {
+        return next(new Error('UNAUTHORIZED'))
+      }
+      if (!user.emailVerifiedAt) {
+        return next(new Error('EMAIL_NOT_VERIFIED'))
+      }
       socket.data.userId = payload.sub
       next()
-    } catch {
-      next(new Error('UNAUTHORIZED'))
+    } catch (err) {
+      next(err as Error)
     }
   })
 }

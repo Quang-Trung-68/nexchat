@@ -68,6 +68,7 @@ model User {
   avatarUrl   String?   @map("avatar_url")
   bio         String?
   password    String? // nullable because of OAuth users
+  emailVerifiedAt DateTime? @map("email_verified_at")
   isOnline    Boolean   @default(false) @map("is_online")
   lastSeenAt  DateTime  @default(now()) @map("last_seen_at")
   createdAt   DateTime  @default(now()) @map("created_at")
@@ -76,7 +77,8 @@ model User {
 
   oauthAccounts       OAuthAccount[]
   refreshTokens       RefreshToken[]
-  passwordResetTokens PasswordResetToken[]
+  emailVerificationToken EmailVerificationToken?
+  forgotPasswordOtp      ForgotPasswordOtp?
   participations      ConversationParticipant[]
   sentMessages        Message[]                 @relation("SentMessages")
   messageReads        MessageRead[]
@@ -122,18 +124,28 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
-model PasswordResetToken {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  token     String   @unique // SHA-256 hash of raw token
+/// Một mã OTP xác thực email đang hiệu lực (xoá / ghi đè khi gửi lại).
+model EmailVerificationToken {
+  userId    String   @id @map("user_id")
+  codeHash  String   @map("code_hash")
   expiresAt DateTime @map("expires_at")
   createdAt DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
-  @@index([token])
-  @@map("password_reset_tokens")
+  @@map("email_verification_tokens")
+}
+
+/// Mã OTP quên mật khẩu (không đăng nhập); một bản ghi / user.
+model ForgotPasswordOtp {
+  userId    String   @id @map("user_id")
+  codeHash  String   @map("code_hash")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("forgot_password_otps")
 }
 
 model Conversation {

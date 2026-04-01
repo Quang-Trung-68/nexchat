@@ -1,8 +1,7 @@
-import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useForgotPassword } from '../queries/auth.queries'
 
@@ -22,7 +21,7 @@ function getErrorMessage(err: unknown): string {
 
 export function ForgotPasswordForm() {
   const forgot = useForgotPassword()
-  const [submitted, setSubmitted] = useState(false)
+  const navigate = useNavigate()
   const {
     register,
     handleSubmit,
@@ -33,29 +32,16 @@ export function ForgotPasswordForm() {
   })
 
   const onSubmit = (data: FormValues) => {
-    forgot.mutate(data.email, {
-      onSuccess: () => setSubmitted(true),
+    const email = data.email.trim().toLowerCase()
+    forgot.mutate(email, {
+      onSuccess: () => {
+        navigate(`/reset-password?email=${encodeURIComponent(email)}`, { replace: true })
+      },
     })
   }
 
   const serverError =
     forgot.isError && forgot.error ? getErrorMessage(forgot.error) : null
-
-  if (submitted) {
-    return (
-      <div className="mx-auto w-full max-w-md rounded-xl border border-neutral-200 bg-white p-8 shadow-sm">
-        <p className="text-center text-neutral-700">
-          Nếu email tồn tại trong hệ thống, chúng tôi đã gửi link đặt lại mật khẩu. Vui lòng kiểm tra
-          hộp thư.
-        </p>
-        <p className="mt-4 text-center">
-          <Link to="/login" className="text-indigo-600 hover:underline">
-            Quay lại đăng nhập
-          </Link>
-        </p>
-      </div>
-    )
-  }
 
   return (
     <form
@@ -64,7 +50,7 @@ export function ForgotPasswordForm() {
     >
       <h1 className="text-2xl font-semibold text-neutral-900">Quên mật khẩu</h1>
       <p className="text-sm text-neutral-600">
-        Nhập email đã đăng ký. Bạn sẽ nhận link đặt lại mật khẩu nếu tài khoản tồn tại.
+        Nhập email đã đăng ký. Bạn sẽ nhận mã xác thực để đặt lại mật khẩu nếu tài khoản tồn tại.
       </p>
 
       {serverError ? <div className="error-alert">{serverError}</div> : null}
@@ -77,7 +63,7 @@ export function ForgotPasswordForm() {
           id="email"
           type="email"
           autoComplete="email"
-          className="rounded-lg border border-neutral-300 px-3 py-2 text-neutral-900 outline-none focus:ring-2 focus:ring-indigo-500"
+          className="rounded-lg border border-neutral-300 px-3 py-2 text-neutral-900 outline-none focus:ring-2 focus:ring-primary"
           {...register('email')}
         />
         {errors.email ? <p className="text-sm text-red-600">{errors.email.message}</p> : null}
@@ -86,13 +72,13 @@ export function ForgotPasswordForm() {
       <button
         type="submit"
         disabled={forgot.isPending}
-        className="rounded-lg bg-indigo-600 px-4 py-2.5 font-medium text-white transition hover:bg-indigo-700 disabled:opacity-60"
+        className="rounded-lg bg-primary px-4 py-2.5 font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
       >
-        {forgot.isPending ? 'Đang gửi...' : 'Gửi link reset'}
+        {forgot.isPending ? 'Đang gửi...' : 'Gửi mã'}
       </button>
 
       <p className="text-center text-sm text-neutral-600">
-        <Link to="/login" className="text-indigo-600 hover:underline">
+        <Link to="/login" className="text-primary hover:underline">
           Quay lại đăng nhập
         </Link>
       </p>

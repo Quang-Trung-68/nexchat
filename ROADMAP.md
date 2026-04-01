@@ -182,15 +182,40 @@ Code: `features/friends/*`, `users.lookup`, `friendSocket.emit.ts`, `notifyMessa
 
 ---
 
-**Bước 17 — Infinite scroll history**
+**Bước 17 — Infinite scroll history** ✅
 
-Cursor pagination đã có: `GET /rooms/:id/messages?cursor=…&limit=…`. TanStack Query `useInfiniteQuery` load thêm khi scroll lên trên. Preserve scroll position bằng `useLayoutEffect` — tính `scrollHeight` trước và sau khi prepend messages mới, bù offset để user không bị nhảy.
+- **Cursor + infinite:** `GET /api/rooms/:id/messages?cursor=&limit=`; **`useRoomMessagesInfinite`** + **`useMergedRoomMessages`**.
+- **ChatThread:** Cuộn lên gần đỉnh (~80px) → tải thêm trang cũ; **debounce 150ms** trước khi gọi **`fetchNextPage`** (tránh kích hoạt đúp khi scroll rung). Trước khi fetch: lưu **`scrollHeight`** + **`scrollTop`**; sau khi prepend xong (**`useLayoutEffect`**, khi `!isFetchingNextPage`): **`scrollTop = prevScrollTop + (newScrollHeight - prevScrollHeight)`** để không nhảy viewport. Reset state khi đổi **`conversationId`**.
+- **Khác:** `useLayoutEffect` lần đầu mở room (cuộn đáy); `ResizeObserver` bám đáy khi ảnh tải; cuộn mượt tin mới từ người khác khi đang gần đáy.
+
+Code: `ChatThread.tsx` (refs `pendingScrollRestoreRef`, `fetchHistoryDebounceRef`).
 
 ---
 
-**Bước 18 — Rate limiting & Security**
+**Bước 18 — Rate limiting & Security** (một phần)
 
-`express-rate-limit` cho REST API (100 req/15 phút per IP). Redis-based rate limit cho Socket events (chống spam message). `helmet` cho security headers. Validate và sanitize tất cả input. Giới hạn file upload size. Log suspicious activity. Đây là bước quan trọng trước khi deploy production.
+- **`helmet()`** toàn app.
+- **`trust proxy`:** `app.set('trust proxy', 1)` khi **`NODE_ENV === 'production'`** hoặc **`TRUST_PROXY=1`/`true`** (Nginx — `req.ip` đúng client).
+- **`express-rate-limit`** theo **từng nhóm route** (lookup user, search tin, ghi friends, …) — **không** dùng limit toàn `/api` (đã thử 100/15 phút toàn cục + limit socket `chat:send` nhưng gây **429** khi đổi room nhiều lần / client refresh nhiều request → đã **gỡ**).
+- **Validate:** Zod trên nhiều endpoint; upload qua **env** + `GET /api/config/upload`.
+- **Chưa / tùy chọn:** rate limit toàn cục mềm hơn (theo user hoặc session); rate limit socket có ngưỡng rất cao; sanitize rộng; log/audit tập trung.
+
+Code: `server.ts`, `config/env.ts` (`TRUST_PROXY`); các file route (`users.routes`, `search.routes`, `friends.routes`, …).
+
+---
+
+**Bước 21 — Auth đầy đủ & email giao dịch** ✅
+
+- **Schema:** `User.emailVerifiedAt`; bảng **`email_verification_tokens`** (OTP đăng ký / xác thực), **`forgot_password_otps`** (OTP quên mật khẩu); thay thế flow reset bằng link (`password_reset_tokens` đã gỡ).
+- **Đăng nhập:** body **`{ identifier, password }`** — khớp **email**, **username** hoặc **phone** (Passport Local + `findUserByLoginIdentifier`).
+- **Email bắt buộc:** middleware **`requireEmailVerified`** sau `authenticate` trên rooms/messages/friends/users/search/config/push/…; Socket.IO từ chối nếu chưa verify (**`EMAIL_NOT_VERIFIED`**). Màn **`/verify-email`** (nhập mã OTP), **`POST /auth/verify-email`**, **`POST /auth/resend-verification`** (rate limit). Client: **`VerifiedRoute`**, interceptor 403 → redirect verify.
+- **Forgot password:** **`POST /auth/forgot-password`** gửi OTP; **`POST /auth/reset-password`** `{ email, code, password }`; trang **`/reset-password?email=`** + gửi lại mã.
+- **Mật khẩu:** **`POST /auth/change-password`** (có mật khẩu cũ); **`POST /auth/set-password`** chỉ **`newPassword`** khi tài khoản OAuth-only (chưa có `password` trong DB). Thông báo qua queue sau đổi/đặt/reset.
+- **Mail:** BullMQ queue **`outbound-mail`** (`features/mail/mail.queue.ts`), worker **`startMailWorker()`** trong **`apps/server/src/worker.ts`** (cùng process với push worker). Template HTML inline đồng bộ theme client (`#0067ff`, sidebar `#0a1628`). **`GET /auth/me`** trả **`hasPassword`** (không lộ hash).
+- **Frontend:** menu avatar (**DropdownMenu**): tên hiển thị, **`@username`**, Hồ sơ (**`/profile`**), Cài đặt (**`/settings`**), Đăng xuất; **`AppShellLayout`** khớp rail sidebar. Socket & **`useRoomsQuery`** chỉ bật khi **`emailVerifiedAt`**; push bootstrap tương tự.
+- **Env / vận hành:** `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS`, `EMAIL_FROM`; chạy **`npm run worker`** (hoặc `dev` kèm worker) để xử lý hàng đợi mail.
+
+Code: `modules/auth/*`, `middlewares/requireEmailVerified.ts`, `features/mail/*`, `socketAuth.middleware.ts`; client `VerifiedRoute`, `VerifyEmailPage`, `ProfilePage`, `SettingsPage`, `ChatNavRail` (dropdown), `api.ts` (403 verify).
 
 ---
 

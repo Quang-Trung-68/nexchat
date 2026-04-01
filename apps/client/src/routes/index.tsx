@@ -1,9 +1,16 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { ProtectedRoute } from '@/shared/components/ProtectedRoute'
+import { VerifiedRoute } from '@/shared/components/VerifiedRoute'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { RegisterPage } from '@/features/auth/pages/RegisterPage'
 import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage'
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage'
+import { VerifyEmailPage } from '@/features/auth/pages/VerifyEmailPage'
+import { ProfilePage } from '@/features/profile/pages/ProfilePage'
+import { SettingsLayout } from '@/features/settings/layout/SettingsLayout'
+import { SettingsGeneralPage } from '@/features/settings/pages/SettingsGeneralPage'
+import { SettingsAccountPage } from '@/features/settings/pages/SettingsAccountPage'
+import { SettingsPasswordPage } from '@/features/settings/pages/SettingsPasswordPage'
 import { ChatPage } from '@/features/chat/pages/ChatPage'
 import { ContactsLayout } from '@/features/contacts/pages/ContactsLayout'
 import { ContactsFriendsPage } from '@/features/contacts/pages/ContactsFriendsPage'
@@ -19,13 +26,24 @@ export function AppRoutes() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 
+      <Route
+        path="/verify-email"
+        element={
+          <ProtectedRoute>
+            <VerifyEmailPage />
+          </ProtectedRoute>
+        }
+      />
+
       <Route path="/" element={<Navigate to="/chat" replace />} />
 
       <Route
         path="/chat"
         element={
           <ProtectedRoute>
-            <ChatPage />
+            <VerifiedRoute>
+              <ChatPage />
+            </VerifiedRoute>
           </ProtectedRoute>
         }
       />
@@ -33,16 +51,46 @@ export function AppRoutes() {
         path="/chat/:conversationId"
         element={
           <ProtectedRoute>
-            <ChatPage />
+            <VerifiedRoute>
+              <ChatPage />
+            </VerifiedRoute>
           </ProtectedRoute>
         }
       />
 
       <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <VerifiedRoute>
+              <ProfilePage />
+            </VerifiedRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <VerifiedRoute>
+              <SettingsLayout />
+            </VerifiedRoute>
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Navigate to="general" replace />} />
+        <Route path="general" element={<SettingsGeneralPage />} />
+        <Route path="account" element={<SettingsAccountPage />} />
+        <Route path="password" element={<SettingsPasswordPage />} />
+      </Route>
+
+      <Route
         path="/contacts"
         element={
           <ProtectedRoute>
-            <ContactsLayout />
+            <VerifiedRoute>
+              <ContactsLayout />
+            </VerifiedRoute>
           </ProtectedRoute>
         }
       >
