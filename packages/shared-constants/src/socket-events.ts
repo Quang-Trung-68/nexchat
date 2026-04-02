@@ -38,6 +38,12 @@ export const SOCKET_EVENTS = {
    * Client invalidate GET /rooms; `sidebarHint` chỉ cho người được thêm (không phải người tạo).
    */
   ROOM_LIST_UPDATED: 'room:list:updated',
+  /** Server → user:{userId}: thông báo mới (DB + badge). */
+  NOTIFICATION_NEW: 'notification:new',
+  /** Server → user:{userId}: cập nhật like trên bài nhật ký. */
+  POST_LIKE_UPDATED: 'post:like:updated',
+  /** Server → user:{userId}: bình luận mới / cập nhật. */
+  POST_COMMENT_UPDATED: 'post:comment:updated',
 } as const
 
 export type SocketEventKey = keyof typeof SOCKET_EVENTS

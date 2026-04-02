@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
 import { AddFriendDialog } from './AddFriendDialog'
 import { CreateGroupDialog } from './CreateGroupDialog'
 import { MessageSearchResultsDropdown } from './MessageSearchResultsDropdown'
@@ -11,12 +10,6 @@ import { useMessageSearch } from '@/features/messages/hooks/useMessageSearch'
 
 export type SearchScopeTab = 'all' | 'contacts' | 'messages' | 'files'
 
-const searchTabs: { id: SearchScopeTab; label: string }[] = [
-  { id: 'all', label: 'Tất cả' },
-  { id: 'contacts', label: 'Liên hệ' },
-  { id: 'messages', label: 'Tin nhắn' },
-  { id: 'files', label: 'File' },
-]
 
 type MessageSearch = ReturnType<typeof useMessageSearch>
 
@@ -38,7 +31,6 @@ export function ChatGlobalSearchToolbar({
   searchFocused,
   onSearchFocusChange,
   searchScopeTab,
-  onSearchScopeTabChange,
   messageSearch,
   onCloseSearchUi,
 }: ChatGlobalSearchToolbarProps) {
@@ -81,27 +73,6 @@ export function ChatGlobalSearchToolbar({
         <CreateGroupDialog />
       </div>
 
-      <div className="flex border-b border-border/50 px-1">
-        {searchTabs.map((st) => (
-          <button
-            key={st.id}
-            type="button"
-            onClick={() => onSearchScopeTabChange(st.id)}
-            className={cn(
-              'relative flex-1 py-2 text-center text-xs font-medium transition-colors sm:text-sm',
-              searchScopeTab === st.id
-                ? 'text-[#0068ff]'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            {st.label}
-            {searchScopeTab === st.id ? (
-              <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-[#0068ff]" />
-            ) : null}
-          </button>
-        ))}
-      </div>
-
       {showSearchDropdown ? (
         <MessageSearchResultsDropdown
           query={messageSearch.debouncedQuery}
@@ -126,8 +97,8 @@ export function ChatGlobalSearchToolbar({
       ) : null}
 
       {searchFocused &&
-      q.trim().length >= SEARCH_MESSAGES.MIN_QUERY_LENGTH &&
-      !scopeAllowsMessageSearch ? (
+        q.trim().length >= SEARCH_MESSAGES.MIN_QUERY_LENGTH &&
+        !scopeAllowsMessageSearch ? (
         <p className="px-3 py-3 text-center text-xs text-muted-foreground">
           Tìm theo Liên hệ / File — sắp có
         </p>

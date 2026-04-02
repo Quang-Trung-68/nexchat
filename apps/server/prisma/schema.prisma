@@ -45,6 +45,7 @@ enum NotificationType {
   NEW_MESSAGE
   FRIEND_REQUEST
   FRIEND_ACCEPTED
+  NEW_FRIEND_POST
   SYSTEM
 
   @@map("notification_type")
@@ -89,6 +90,9 @@ model User {
   notifications       Notification[]
   pinsCreated         PinnedMessage[] @relation("PinnedByUser")
   pushSubscriptions   PushSubscription[]
+  posts               Post[]
+  postLikes           PostLike[]
+  postComments        PostComment[]
 
   @@index([email])
   @@index([username])
@@ -328,4 +332,64 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  authorId  String   @map("author_id")
+  content   String   @default("")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  author User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  images   PostImage[]
+  likes    PostLike[]
+  comments PostComment[]
+
+  @@index([authorId, createdAt(sort: Desc)])
+  @@map("posts")
+}
+
+model PostImage {
+  id        String @id @default(cuid())
+  postId    String @map("post_id")
+  url       String
+  sortOrder Int    @default(0) @map("sort_order")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("post_images")
+}
+
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+  @@map("post_likes")
+}
+
+model PostComment {
+  id        String    @id @default(cuid())
+  postId    String    @map("post_id")
+  authorId  String    @map("author_id")
+  content   String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
+  @@index([authorId])
+  @@map("post_comments")
 }

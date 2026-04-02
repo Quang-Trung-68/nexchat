@@ -21,6 +21,8 @@ import usersRoutes from './features/users/users.routes'
 import friendsRoutes from './features/friends/friends.routes'
 import pushRoutes from './features/push/push.routes'
 import webrtcRoutes from './features/webrtc/webrtc.routes'
+import postsRoutes from './features/posts/posts.routes'
+import notificationsRoutes from './features/notifications/notifications.routes'
 import { globalErrorHandler } from './middlewares/globalErrorHandler'
 import { initSocketServer } from './features/sockets/socketServer'
 
@@ -61,6 +63,8 @@ app.use('/api/users', usersRoutes)
 app.use('/api/friends', friendsRoutes)
 app.use('/api/push', pushRoutes)
 app.use('/api/webrtc', webrtcRoutes)
+app.use('/api/posts', postsRoutes)
+app.use('/api/notifications', notificationsRoutes)
 
 // ─── Global error handler (must be LAST middleware) ───────────────────────────
 app.use(globalErrorHandler)

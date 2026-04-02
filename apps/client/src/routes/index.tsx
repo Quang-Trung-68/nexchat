@@ -17,7 +17,8 @@ import { ContactsFriendsPage } from '@/features/contacts/pages/ContactsFriendsPa
 import { ContactsGroupsPage } from '@/features/contacts/pages/ContactsGroupsPage'
 import { ContactsRequestsPage } from '@/features/contacts/pages/ContactsRequestsPage'
 import { ContactsGroupInvitesPage } from '@/features/contacts/pages/ContactsGroupInvitesPage'
-import { CallsPlaceholderPage } from '@/features/call/pages/CallsPlaceholderPage'
+import { NewsfeedPage } from '@/features/newsfeed/pages/NewsfeedPage'
+import { PostDetailPage } from '@/features/newsfeed/pages/PostDetailPage'
 
 export function AppRoutes() {
   return (
@@ -103,11 +104,21 @@ export function AppRoutes() {
       </Route>
 
       <Route
-        path="/calls"
+        path="/newsfeed/:postId"
         element={
           <ProtectedRoute>
             <VerifiedRoute>
-              <CallsPlaceholderPage />
+              <PostDetailPage />
+            </VerifiedRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/newsfeed"
+        element={
+          <ProtectedRoute>
+            <VerifiedRoute>
+              <NewsfeedPage />
             </VerifiedRoute>
           </ProtectedRoute>
         }

@@ -1,11 +1,12 @@
 import { Link, useLocation } from 'react-router-dom'
 import {
   MessageCircle,
-  Phone,
   Users,
+  BookMarked,
   Cloud,
   Briefcase,
   LogOut,
+  Settings,
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
@@ -18,6 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { NotificationsDropdown } from '@/features/notifications/components/NotificationsDropdown'
 import { cn } from '@/lib/utils'
 
 type ChatNavRailProps = {
@@ -41,14 +43,15 @@ export function ChatNavRail({
   const location = useLocation()
   const initial = (displayName ?? '?').slice(0, 1).toUpperCase()
   const chatActive = location.pathname.startsWith('/chat')
-  const callsActive = location.pathname.startsWith('/calls')
   const contactsActive = location.pathname.startsWith('/contacts')
+  const newsfeedActive = location.pathname.startsWith('/newsfeed')
+  const settingsActive = location.pathname.startsWith('/settings')
 
   return (
     <TooltipProvider delayDuration={300}>
       <div
         className={cn(
-          'flex w-[60px] shrink-0 flex-col items-center gap-2 py-3 shadow-[2px_0_8px_-2px_rgba(0,0,0,0.08)]',
+          'flex h-full min-h-0 w-[60px] shrink-0 flex-col items-center gap-2 py-3 shadow-[2px_0_8px_-2px_rgba(0,0,0,0.08)]',
           'bg-primary text-primary-foreground',
           className
         )}
@@ -103,14 +106,14 @@ export function ChatNavRail({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <div className="mt-2 flex flex-1 flex-col gap-1">
+        <div className="mt-2 flex min-h-0 flex-1 flex-col gap-1">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  'text-white hover:bg-white/15 hover:text-white',
+                  'h-10 w-10 text-white hover:bg-white/15 hover:text-white',
                   chatActive && 'bg-white/20'
                 )}
                 asChild
@@ -131,28 +134,7 @@ export function ChatNavRail({
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  'text-white hover:bg-white/15 hover:text-white',
-                  callsActive && 'bg-white/20'
-                )}
-                asChild
-              >
-                <Link to="/calls" aria-label="Cuộc gọi">
-                  <Phone className="h-5 w-5" />
-                </Link>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right" className="text-xs">
-              Cuộc gọi
-            </TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  'relative text-white hover:bg-white/15 hover:text-white',
+                  'relative h-10 w-10 text-white hover:bg-white/15 hover:text-white',
                   contactsActive && 'bg-white/20'
                 )}
                 asChild
@@ -176,11 +158,32 @@ export function ChatNavRail({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'h-10 w-10 text-white hover:bg-white/15 hover:text-white',
+                  newsfeedActive && 'bg-white/20'
+                )}
+                asChild
+              >
+                <Link to="/newsfeed" aria-label="Nhật ký">
+                  <BookMarked className="h-5 w-5" />
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="text-xs">
+              Nhật ký
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
                 type="button"
                 variant="ghost"
                 size="icon"
                 disabled
-                className="text-white hover:bg-white/15 hover:text-white"
+                className="h-10 w-10 text-white hover:bg-white/15 hover:text-white"
                 aria-label="Cloud (sắp có)"
               >
                 <Cloud className="h-5 w-5" />
@@ -198,7 +201,7 @@ export function ChatNavRail({
                 variant="ghost"
                 size="icon"
                 disabled
-                className="text-white hover:bg-white/15 hover:text-white"
+                className="h-10 w-10 text-white hover:bg-white/15 hover:text-white"
                 aria-label="Công việc (sắp có)"
               >
                 <Briefcase className="h-5 w-5" />
@@ -208,6 +211,34 @@ export function ChatNavRail({
               Công việc (sắp có)
             </TooltipContent>
           </Tooltip>
+        </div>
+
+        <div className="mt-auto flex w-full shrink-0 flex-col items-center gap-1 pb-1">
+          <div className="flex w-full justify-center">
+            <NotificationsDropdown variant="onPrimary" />
+          </div>
+          <div className="flex w-full justify-center">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    'h-10 w-10 text-white hover:bg-white/15 hover:text-white',
+                    settingsActive && 'bg-white/20'
+                  )}
+                  asChild
+                >
+                  <Link to="/settings/general" aria-label="Cài đặt">
+                    <Settings className="h-5 w-5" />
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="text-xs">
+                Cài đặt
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
       </div>
     </TooltipProvider>

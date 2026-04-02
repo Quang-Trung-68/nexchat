@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { MessageCircle, Settings, User, Users } from 'lucide-react'
+import { BookMarked, MessageCircle, Settings, User, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const items: {
@@ -19,6 +19,12 @@ const items: {
     label: 'Danh bạ',
     match: (p) => p.startsWith('/contacts'),
     icon: Users,
+  },
+  {
+    to: '/newsfeed',
+    label: 'Nhật ký',
+    match: (p) => p.startsWith('/newsfeed'),
+    icon: BookMarked,
   },
   { to: '/profile', label: 'Hồ sơ', match: (p) => p === '/profile', icon: User },
   {

@@ -3,6 +3,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth'
 import { ChatNavRail } from '@/features/chat/components/ChatNavRail'
 import { useContactsPendingBadge } from '@/features/contacts/hooks/useContactsPendingBadge'
 import { MobileBottomNav, mobileNavBottomPaddingClassName } from '@/shared/components/MobileBottomNav'
+import { NotificationsDropdown } from '@/features/notifications/components/NotificationsDropdown'
 import { cn } from '@/lib/utils'
 
 type AppShellLayoutProps = {
@@ -28,7 +29,14 @@ export function AppShellLayout({ children }: AppShellLayoutProps) {
         onLogout={() => void logout()}
         contactsPendingBadge={contactsPendingBadge}
       />
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-secondary-surface">{children}</div>
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-secondary-surface">
+        <div className="pointer-events-none absolute right-3 top-[max(0.5rem,env(safe-area-inset-top))] z-40 lg:hidden">
+          <div className="pointer-events-auto">
+            <NotificationsDropdown variant="surface" />
+          </div>
+        </div>
+        {children}
+      </div>
       <MobileBottomNav />
     </div>
   )
