@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "worker": "tsx watch src/worker.ts",
-    "build": "tsc",
+    "build": "tsc && tsc-alias",
     "start": "node dist/server.js",
     "start:worker": "node dist/worker.js",
     "db:migrate": "prisma migrate dev",
@@ -62,6 +62,7 @@
     "@types/node": "^20.14.0",
     "@types/web-push": "^3.6.4",
     "prisma": "^5.22.0",
+    "tsc-alias": "^1.8.10",
     "tsx": "^4.15.0",
     "typescript": "^5.4.5"
   }
