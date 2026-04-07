@@ -7,31 +7,44 @@ import { AppError } from '@/shared/errors/AppError'
 import { authService } from './auth.service'
 import type { TokenPair } from './auth.types'
 
-const COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
-  path: '/',
+function cookieBaseOptions(): {
+  httpOnly: boolean
+  secure: boolean
+  sameSite: 'lax'
+  path: string
+  domain?: string
+} {
+  const domain = env.COOKIE_DOMAIN.trim()
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    path: '/',
+    ...(domain ? { domain } : {}),
+  }
 }
 
 function setAuthCookies(res: Response, tokens: TokenPair) {
+  const base = cookieBaseOptions()
   res.cookie('accessToken', tokens.accessToken, {
-    ...COOKIE_OPTIONS,
+    ...base,
     maxAge: 15 * 60 * 1000,
   })
   res.cookie('refreshToken', tokens.refreshToken, {
-    ...COOKIE_OPTIONS,
+    ...base,
     maxAge: 7 * 24 * 60 * 60 * 1000,
   })
 }
 
 function clearAuthCookies(res: Response) {
-  res.clearCookie('accessToken', COOKIE_OPTIONS)
-  res.clearCookie('refreshToken', COOKIE_OPTIONS)
+  const base = cookieBaseOptions()
+  res.clearCookie('accessToken', base)
+  res.clearCookie('refreshToken', base)
 }
 
 function toPublicUser(user: User | Express.User) {
-  const { password: _p, ...rest } = user as User
+  const { password: _omitPassword, ...rest } = user as User
+  void _omitPassword
   return rest
 }
 

@@ -1,7 +1,11 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import { getApiOrigin } from '@/lib/apiOrigin'
+
+const apiOrigin = getApiOrigin()
+const apiBase = apiOrigin ? `${apiOrigin}/api` : '/api'
 
 export const api = axios.create({
-  baseURL: '/api',
+  baseURL: apiBase,
   withCredentials: true,
 })
 

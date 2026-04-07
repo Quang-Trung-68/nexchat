@@ -50,6 +50,8 @@ export const env = {
   JWT_ACCESS_EXPIRES_IN: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
   JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:5173',
+  /** Thiết lập khi SPA và API khác subdomain (ví dụ chat.* và api.chat.*) — cookie dùng chung cho *.domain. */
+  COOKIE_DOMAIN: process.env.COOKIE_DOMAIN || '',
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
   GOOGLE_CALLBACK_URL:

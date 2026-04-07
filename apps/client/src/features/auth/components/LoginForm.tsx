@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
+import { apiUrl } from '@/lib/apiOrigin'
 import { useLogin } from '../queries/auth.queries'
 import type { LoginPayload } from '../types/auth.types'
 
@@ -90,7 +91,7 @@ export function LoginForm() {
         type="button"
         className="rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm font-medium text-neutral-800 hover:bg-neutral-50"
         onClick={() => {
-          window.location.href = '/api/auth/google'
+          window.location.href = apiUrl('/api/auth/google')
         }}
       >
         Đăng nhập bằng Google

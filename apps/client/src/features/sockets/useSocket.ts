@@ -31,11 +31,18 @@ export function useSocket() {
       return
     }
 
-    const s = io({
-      path: '/ws',
-      transports: ['websocket', 'polling'],
-      withCredentials: true,
-    })
+    const socketOrigin = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL
+    const s = socketOrigin
+      ? io(String(socketOrigin).replace(/\/$/, ''), {
+          path: '/ws',
+          transports: ['websocket', 'polling'],
+          withCredentials: true,
+        })
+      : io({
+          path: '/ws',
+          transports: ['websocket', 'polling'],
+          withCredentials: true,
+        })
 
     setSocket(s)
 
