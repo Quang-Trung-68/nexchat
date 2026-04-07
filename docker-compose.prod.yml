@@ -73,7 +73,7 @@ services:
     image: ${GHCR_PREFIX:?Set GHCR_PREFIX in .env e.g. ghcr.io/yourgithubuser}/chat-app-server:latest
     restart: unless-stopped
     working_dir: /app/apps/server
-    command: ["npx", "tsx", "src/worker.ts"]
+    command: ["node", "dist/worker.js"]
     env_file:
       - ./apps/server/.env
     environment:
