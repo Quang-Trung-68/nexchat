@@ -1,5 +1,5 @@
 # chat-app — API + Prisma (monorepo workspace)
-# Multi-stage: build shared packages → compile server TS → run node dist/server.js
+# Multi-stage: prisma generate → build shared packages → compile server TS → node dist/server.js
 
 # ================================
 # Stage 1: Builder
@@ -21,6 +21,12 @@ COPY packages/shared-utils/package.json packages/shared-utils/
 
 RUN npm ci
 
+# Prisma client MUST be generated before shared-types (it re-exports enums from @prisma/client)
+COPY apps/server/prisma apps/server/prisma
+WORKDIR /app/apps/server
+RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
+WORKDIR /app
+
 # Copy shared packages source
 COPY packages packages
 
@@ -34,13 +40,10 @@ RUN cd packages/shared-utils     && npx tsc --project tsconfig.json
 # This avoids rootDir violations when compiling apps/server
 RUN node -e "['shared-constants','shared-schemas','shared-types','shared-utils'].forEach(function(p){var f=require('path').join('packages',p,'package.json');var j=JSON.parse(require('fs').readFileSync(f,'utf8'));j.main='dist/index.js';j.types='dist/index.d.ts';require('fs').writeFileSync(f,JSON.stringify(j,null,2));});"
 
-# Copy server source
+# Copy full server source (src, prisma, …)
 COPY apps/server apps/server
 
 WORKDIR /app/apps/server
-
-# Generate Prisma client (dummy DB URL — only reads schema, never connects)
-RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
 
 # Compile TypeScript → dist/
 RUN npm run build
