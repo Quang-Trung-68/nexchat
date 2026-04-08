@@ -7,7 +7,7 @@ export function ChatWelcome() {
         <MessageCircle className="h-10 w-10" />
       </div>
       <h1 className="text-xl font-semibold text-foreground">
-        Chào mừng đến với <span className="text-primary">Zalo-Clone</span>
+        Chào mừng đến với <span className="text-primary">NexChat</span>
       </h1>
       <p className="mt-2 max-w-sm text-sm text-muted-foreground">
         Chọn một hội thoại bên trái để bắt đầu nhắn tin.

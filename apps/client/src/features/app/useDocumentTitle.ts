@@ -1,10 +1,10 @@
 import { useEffect } from 'react'
 import { useTitleBarStore } from './titleBar.store'
 
-const BASE_TITLE = 'Chat App'
+const BASE_TITLE = 'NexChat'
 
 /**
- * Tiêu đề tab: `(n) Chat App` khi có chưa đọc; flash `● Người gửi: …` khi tab ẩn và có tin (qua store).
+ * Tiêu đề tab: `(n) NexChat` khi có chưa đọc; flash `● Người gửi: …` khi tab ẩn và có tin (qua store).
  * Đồng bộ badge OS (nếu trình duyệt hỗ trợ).
  */
 export function useDocumentTitle(totalUnread: number) {
@@ -25,7 +25,11 @@ export function useDocumentTitle(totalUnread: number) {
     if ('setAppBadge' in navigator && typeof navigator.setAppBadge === 'function') {
       void navigator.setAppBadge(totalUnread > 0 ? totalUnread : undefined).catch(() => {})
     }
-    if ('clearAppBadge' in navigator && typeof navigator.clearAppBadge === 'function' && totalUnread === 0) {
+    if (
+      'clearAppBadge' in navigator &&
+      typeof navigator.clearAppBadge === 'function' &&
+      totalUnread === 0
+    ) {
       void navigator.clearAppBadge().catch(() => {})
     }
   }, [totalUnread, flash])

@@ -5,7 +5,7 @@ import { useActiveConversationStore } from '@/features/chat/store/activeConversa
 import { usePageVisibility } from '@/hooks/usePageVisibility'
 import { useDocumentTitle } from './useDocumentTitle'
 
-/** Đồng bộ `(unread) Chat App`, flash tiêu đề khi tab ẩn, badge OS. */
+/** Đồng bộ `(unread) NexChat`, flash tiêu đề khi tab ẩn, badge OS. */
 export function DocumentTitleSync() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const { data: rooms } = useRoomsQuery()

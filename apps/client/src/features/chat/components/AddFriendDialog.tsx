@@ -160,7 +160,7 @@ export function AddFriendDialog() {
         <DialogHeader>
           <DialogTitle>Thêm bạn</DialogTitle>
           <DialogDescription>
-            Nhập chính xác tên người dùng, email hoặc số điện thoại (không gợi ý danh sách).
+            Nhập chính xác tên người dùng, email hoặc số điện thoại.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 py-1">

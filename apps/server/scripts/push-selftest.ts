@@ -26,9 +26,10 @@ async function main() {
   console.log('═'.repeat(60))
 
   printSection('1. Biến môi trường')
-  const hasVapid =
-    Boolean(env.VAPID_PUBLIC_KEY?.trim()) && Boolean(env.VAPID_PRIVATE_KEY?.trim())
-  console.log(`  VAPID_PUBLIC_KEY:  ${hasVapid ? `OK (${env.VAPID_PUBLIC_KEY!.length} ký tự)` : 'THIẾU'}`)
+  const hasVapid = Boolean(env.VAPID_PUBLIC_KEY?.trim()) && Boolean(env.VAPID_PRIVATE_KEY?.trim())
+  console.log(
+    `  VAPID_PUBLIC_KEY:  ${hasVapid ? `OK (${env.VAPID_PUBLIC_KEY!.length} ký tự)` : 'THIẾU'}`
+  )
   console.log(`  VAPID_PRIVATE_KEY: ${hasVapid ? 'OK' : 'THIẾU'}`)
   console.log(`  VAPID_SUBJECT:       ${env.VAPID_SUBJECT || '(trống)'}`)
   console.log(`  CLIENT_URL:          ${env.CLIENT_URL}`)
@@ -71,8 +72,12 @@ async function main() {
       _count: { _all: true },
     })
     if (byUser.length === 0) {
-      console.log('  ⚠ Không có subscription nào — client chưa POST /api/push/subscribe thành công.')
-      console.log('    Gợi ý: đăng nhập → Notification permission = granted → mở console (F12) xem log [push]...')
+      console.log(
+        '  ⚠ Không có subscription nào — client chưa POST /api/push/subscribe thành công.'
+      )
+      console.log(
+        '    Gợi ý: đăng nhập → Notification permission = granted → mở console (F12) xem log [push]...'
+      )
     } else {
       console.log('  Theo userId:')
       for (const row of byUser) {
@@ -102,7 +107,9 @@ async function main() {
       const key = presenceUserKey(one.userId)
       const n = await redis.scard(key)
       console.log(`  Key ${key} (SET socket.id)`)
-      console.log(`  SCARD: ${n} — ${n === 0 ? 'offline (không gửi push khi đang mở tab)' : 'online'}`)
+      console.log(
+        `  SCARD: ${n} — ${n === 0 ? 'offline (không gửi push khi đang mở tab)' : 'online'}`
+      )
       console.log(`  → Worker chỉ gửi push khi SCARD = 0.`)
     } else if (!one) {
       console.log('  ⊘ Không có user nào có subscription để test key.')
@@ -125,11 +132,13 @@ async function main() {
     const subs = await pushRepository.listSubscriptionsByUserId(sendUserId)
     if (subs.length === 0) {
       console.log('  ✗ Không có subscription trong DB cho user này.')
-      console.log('    Đăng nhập bằng tài khoản đó trên trình duyệt, đồng ý thông báo, và xem log [push] trên client.')
+      console.log(
+        '    Đăng nhập bằng tài khoản đó trên trình duyệt, đồng ý thông báo, và xem log [push] trên client.'
+      )
     } else {
       webpush.setVapidDetails(env.VAPID_SUBJECT, env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY)
       const payload = JSON.stringify({
-        title: '[Self-test] Chat App',
+        title: '[Self-test] NexChat',
         body: 'Nếu thấy thông báo này, web-push + SW hoạt động.',
         url: `${env.CLIENT_URL.replace(/\/$/, '')}/chat`,
         conversationId: '',

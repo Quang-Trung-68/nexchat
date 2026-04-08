@@ -15,7 +15,7 @@ function layout(inner: string): string {
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:24px 16px;">
     <tr><td align="center">
       <table role="presentation" width="100%" style="max-width:480px;background:#ffffff;border:1px solid ${BORDER};border-radius:12px;overflow:hidden;">
-        <tr><td style="background:${SIDEBAR};color:#e8eef7;padding:16px 20px;font-size:15px;font-weight:600;">Chat App</td></tr>
+        <tr><td style="background:${SIDEBAR};color:#e8eef7;padding:16px 20px;font-size:15px;font-weight:600;">NexChat</td></tr>
         <tr><td style="padding:24px 20px;color:${FG};font-size:15px;line-height:1.5;">
           ${inner}
         </td></tr>
@@ -34,7 +34,7 @@ export function renderVerificationEmail(code: string): { subject: string; html: 
     <p style="margin:0 0 20px;font-size:28px;font-weight:700;letter-spacing:4px;color:${PRIMARY};">${escapeHtml(code)}</p>
     <p style="margin:0;color:${MUTED};font-size:13px;">Hoặc mở ứng dụng và nhập mã tại trang xác thực: <a href="${escapeHtml(env.CLIENT_URL)}/verify-email" style="color:${PRIMARY};">${escapeHtml(env.CLIENT_URL)}/verify-email</a></p>
   `
-  return { subject: 'Mã xác thực email — Chat App', html: layout(inner) }
+  return { subject: 'Mã xác thực email — NexChat', html: layout(inner) }
 }
 
 export function renderForgotPasswordOtpEmail(code: string): { subject: string; html: string } {
@@ -44,31 +44,31 @@ export function renderForgotPasswordOtpEmail(code: string): { subject: string; h
     <p style="margin:0 0 20px;font-size:28px;font-weight:700;letter-spacing:4px;color:${PRIMARY};">${escapeHtml(code)}</p>
     <p style="margin:0;color:${MUTED};font-size:13px;">Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>
   `
-  return { subject: 'Mã đặt lại mật khẩu — Chat App', html: layout(inner) }
+  return { subject: 'Mã đặt lại mật khẩu — NexChat', html: layout(inner) }
 }
 
 export function renderPasswordChangedEmail(): { subject: string; html: string } {
   const inner = `
     <h1 style="margin:0 0 12px;font-size:18px;color:${FG};">Mật khẩu đã được đổi</h1>
-    <p style="margin:0;color:${MUTED};">Mật khẩu tài khoản Chat App của bạn vừa được thay đổi. Nếu không phải bạn, hãy đặt lại mật khẩu ngay hoặc liên hệ hỗ trợ.</p>
+    <p style="margin:0;color:${MUTED};">Mật khẩu tài khoản NexChat của bạn vừa được thay đổi. Nếu không phải bạn, hãy đặt lại mật khẩu ngay hoặc liên hệ hỗ trợ.</p>
   `
-  return { subject: 'Mật khẩu đã được đổi — Chat App', html: layout(inner) }
+  return { subject: 'Mật khẩu đã được đổi — NexChat', html: layout(inner) }
 }
 
 export function renderPasswordResetSuccessEmail(): { subject: string; html: string } {
   const inner = `
     <h1 style="margin:0 0 12px;font-size:18px;color:${FG};">Đặt lại mật khẩu thành công</h1>
-    <p style="margin:0;color:${MUTED};">Mật khẩu Chat App của bạn đã được cập nhật. Các phiên đăng nhập khác có thể đã bị đăng xuất.</p>
+    <p style="margin:0;color:${MUTED};">Mật khẩu NexChat của bạn đã được cập nhật. Các phiên đăng nhập khác có thể đã bị đăng xuất.</p>
   `
-  return { subject: 'Đặt lại mật khẩu thành công — Chat App', html: layout(inner) }
+  return { subject: 'Đặt lại mật khẩu thành công — NexChat', html: layout(inner) }
 }
 
 export function renderPasswordSetEmail(): { subject: string; html: string } {
   const inner = `
     <h1 style="margin:0 0 12px;font-size:18px;color:${FG};">Đã đặt mật khẩu</h1>
-    <p style="margin:0;color:${MUTED};">Bạn đã đặt mật khẩu cho tài khoản Chat App. Giờ bạn có thể đăng nhập bằng email và mật khẩu hoặc tiếp tục dùng đăng nhập mạng xã hội.</p>
+    <p style="margin:0;color:${MUTED};">Bạn đã đặt mật khẩu cho tài khoản NexChat. Giờ bạn có thể đăng nhập bằng email và mật khẩu hoặc tiếp tục dùng đăng nhập mạng xã hội.</p>
   `
-  return { subject: 'Đã đặt mật khẩu — Chat App', html: layout(inner) }
+  return { subject: 'Đã đặt mật khẩu — NexChat', html: layout(inner) }
 }
 
 function escapeHtml(s: string): string {

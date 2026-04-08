@@ -32,6 +32,7 @@ coverage/
 
 # Prisma
 *.db
+redis_data/
 
 # Docker volumes (local)
 postgres_data/
@@ -39,5 +40,6 @@ postgres_data/
 .agents
 ROADMAP.md
 
-.test.md
-test.txt
+*.pem
+*.key
+*.crt
